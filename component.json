@@ -1,0 +1,32 @@
+{
+  "slug": "bellbuoy",
+  "name": "Bellbuoy",
+  "formerly": "cs-10-notify",
+  "earlierNames": [
+    "Foghorn"
+  ],
+  "kind": "worker",
+  "stage": 10,
+  "namespace": "cs-workers",
+  "responsibility": "Turns failures, paused items and approved edits into one piece of work in the repository that owns the fix.",
+  "interfaces": [
+    "Leases routing work from Muster",
+    "Commits changes and opens tasks in Plainforge",
+    "Sends owner alerts to a configured webhook",
+    "Feeds the live update stream through Muster"
+  ],
+  "repository": "bellbuoy",
+  "image": "bellbuoy",
+  "dependsOn": [
+    "muster",
+    "plainforge"
+  ],
+  "memory": "30 MiB",
+  "version": "v0.1.0-draft",
+  "subTools": [
+    "internal-git",
+    "github-mirror",
+    "webhook-alert",
+    "portal-sse"
+  ]
+}
