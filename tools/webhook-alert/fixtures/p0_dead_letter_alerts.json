@@ -1,0 +1,58 @@
+{
+  "about": "A P0 dead letter alerts.",
+  "job": {
+    "id": "job-0204",
+    "lane": "urgent",
+    "kind": "dead_letter",
+    "payload": {
+      "worker": "keelworks",
+      "code": "E_PARSE",
+      "pattern": "gave up",
+      "tier": "P0",
+      "item": "PA-0042"
+    }
+  },
+  "state": {
+    "task": {
+      "repo": "keelworks",
+      "id": "keelworks#4",
+      "created": false,
+      "occurrences": 2,
+      "worker": "keelworks",
+      "code": "E_PARSE",
+      "fingerprint": "49ba3ba27195299b6d15591a9569d2ab5ff2c065c34fc2f90a83588b2224b445",
+      "tier": "P0"
+    }
+  },
+  "want": {
+    "match": true,
+    "state": {
+      "task": {
+        "repo": "keelworks",
+        "id": "keelworks#4",
+        "created": false,
+        "occurrences": 2,
+        "worker": "keelworks",
+        "code": "E_PARSE",
+        "fingerprint": "49ba3ba27195299b6d15591a9569d2ab5ff2c065c34fc2f90a83588b2224b445",
+        "tier": "P0"
+      }
+    },
+    "effects": {
+      "alerts": [
+        {
+          "source": "bellbuoy",
+          "kind": "dead_letter",
+          "lane": "urgent",
+          "tier": "P0",
+          "new": false,
+          "worker": "keelworks",
+          "code": "E_PARSE",
+          "fingerprint": "49ba3ba27195299b6d15591a9569d2ab5ff2c065c34fc2f90a83588b2224b445",
+          "occurrences": 2,
+          "task": "keelworks#4"
+        }
+      ]
+    }
+  }
+}

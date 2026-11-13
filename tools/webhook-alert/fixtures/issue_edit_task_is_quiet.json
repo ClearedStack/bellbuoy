@@ -1,0 +1,37 @@
+{
+  "about": "A task opened from an approved ISSUE edit is not a failure. The owner approved it a moment ago and is not alerted about it.",
+  "job": {
+    "id": "job-0212",
+    "lane": "normal",
+    "kind": "edit",
+    "payload": {
+      "edit": "ed-0004",
+      "class": "ISSUE",
+      "target": "platform/registry.json",
+      "approval": "cs-0004",
+      "summary": "x"
+    }
+  },
+  "state": {
+    "task": {
+      "repo": "clearedstack.com",
+      "id": "clearedstack.com#1",
+      "created": true,
+      "occurrences": 1,
+      "edit": "ed-0004"
+    }
+  },
+  "want": {
+    "match": false,
+    "state": {
+      "task": {
+        "repo": "clearedstack.com",
+        "id": "clearedstack.com#1",
+        "created": true,
+        "occurrences": 1,
+        "edit": "ed-0004"
+      }
+    },
+    "effects": {}
+  }
+}

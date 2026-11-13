@@ -1,0 +1,39 @@
+{
+  "about": "A repeat of a known failure was counted on its open task. The matching rule says no: nobody is alerted the two-hundredth time.",
+  "job": {
+    "id": "job-0202",
+    "lane": "normal",
+    "kind": "error",
+    "payload": {
+      "worker": "muster",
+      "code": "E_TIMEOUT",
+      "pattern": "x"
+    }
+  },
+  "state": {
+    "task": {
+      "repo": "muster",
+      "id": "muster#1",
+      "created": false,
+      "occurrences": 200,
+      "worker": "muster",
+      "code": "E_TIMEOUT",
+      "fingerprint": "49ba3ba27195299b6d15591a9569d2ab5ff2c065c34fc2f90a83588b2224b445"
+    }
+  },
+  "want": {
+    "match": false,
+    "state": {
+      "task": {
+        "repo": "muster",
+        "id": "muster#1",
+        "created": false,
+        "occurrences": 200,
+        "worker": "muster",
+        "code": "E_TIMEOUT",
+        "fingerprint": "49ba3ba27195299b6d15591a9569d2ab5ff2c065c34fc2f90a83588b2224b445"
+      }
+    },
+    "effects": {}
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "about": "The P0 rule covers crashes and dead letters. A repeat of an ordinary error marked P0 has no rule that alerts, so it is counted quietly.",
+  "job": {
+    "id": "job-0206",
+    "lane": "normal",
+    "kind": "error",
+    "payload": {
+      "worker": "keelworks",
+      "code": "E_TIMEOUT",
+      "pattern": "x",
+      "tier": "P0"
+    }
+  },
+  "state": {
+    "task": {
+      "repo": "keelworks",
+      "id": "keelworks#2",
+      "created": false,
+      "occurrences": 5,
+      "worker": "keelworks",
+      "code": "E_TIMEOUT",
+      "fingerprint": "49ba3ba27195299b6d15591a9569d2ab5ff2c065c34fc2f90a83588b2224b445",
+      "tier": "P0"
+    }
+  },
+  "want": {
+    "match": false,
+    "state": {
+      "task": {
+        "repo": "keelworks",
+        "id": "keelworks#2",
+        "created": false,
+        "occurrences": 5,
+        "worker": "keelworks",
+        "code": "E_TIMEOUT",
+        "fingerprint": "49ba3ba27195299b6d15591a9569d2ab5ff2c065c34fc2f90a83588b2224b445",
+        "tier": "P0"
+      }
+    },
+    "effects": {}
+  }
+}

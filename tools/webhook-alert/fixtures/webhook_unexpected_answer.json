@@ -1,0 +1,44 @@
+{
+  "about": "The webhook answers with something unexpected. The error is E_PARSE.",
+  "job": {
+    "id": "job-0214",
+    "lane": "normal",
+    "kind": "error",
+    "payload": {
+      "worker": "muster",
+      "code": "E_TIMEOUT",
+      "pattern": "x"
+    }
+  },
+  "fault": "E_PARSE",
+  "state": {
+    "task": {
+      "repo": "muster",
+      "id": "muster#1",
+      "created": true,
+      "occurrences": 1,
+      "worker": "muster",
+      "code": "E_TIMEOUT",
+      "fingerprint": "49ba3ba27195299b6d15591a9569d2ab5ff2c065c34fc2f90a83588b2224b445"
+    }
+  },
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_PARSE",
+      "reason": "the outside answer was not understood"
+    },
+    "state": {
+      "task": {
+        "repo": "muster",
+        "id": "muster#1",
+        "created": true,
+        "occurrences": 1,
+        "worker": "muster",
+        "code": "E_TIMEOUT",
+        "fingerprint": "49ba3ba27195299b6d15591a9569d2ab5ff2c065c34fc2f90a83588b2224b445"
+      }
+    },
+    "effects": {}
+  }
+}
