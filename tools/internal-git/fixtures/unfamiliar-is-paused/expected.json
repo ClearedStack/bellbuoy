@@ -1,0 +1,46 @@
+{
+  "outcomes": [
+    {
+      "action": "opened",
+      "task": 1,
+      "occurrences": 1,
+      "fingerprint": "3d0bab2ff68c8f670dc17fa80d7e7dbafde711599967c295949787ffa8d06db5"
+    },
+    {
+      "action": "paused",
+      "code": "E_NEEDS_SUBTOOL",
+      "reason": "error code is well formed and not one of the three public codes"
+    },
+    {
+      "action": "paused",
+      "code": "E_NEEDS_SUBTOOL",
+      "reason": "no rule covers this kind of item"
+    },
+    {
+      "action": "paused",
+      "code": "E_NEEDS_SUBTOOL",
+      "reason": "no rule covers this kind of item"
+    },
+    {
+      "action": "paused",
+      "code": "E_NEEDS_SUBTOOL",
+      "reason": "item has a field no rule covers"
+    },
+    {
+      "action": "added",
+      "task": 1,
+      "occurrences": 2,
+      "fingerprint": "3d0bab2ff68c8f670dc17fa80d7e7dbafde711599967c295949787ffa8d06db5"
+    }
+  ],
+  "tasks": [
+    {
+      "id": 1,
+      "title": "keelworks: E_TIMEOUT build-step-slow",
+      "body": "Worker: keelworks\nError code: E_TIMEOUT\nFailure pattern: build-step-slow\nFingerprint: 3d0bab2ff68c8f670dc17fa80d7e7dbafde711599967c295949787ffa8d06db5\n",
+      "fingerprint": "3d0bab2ff68c8f670dc17fa80d7e7dbafde711599967c295949787ffa8d06db5",
+      "occurrences": 2,
+      "open": true
+    }
+  ]
+}

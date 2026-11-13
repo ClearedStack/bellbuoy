@@ -1,0 +1,13 @@
+# The sub-tools of Bellbuoy. Each one lives in its own folder under tools/
+# and has three parts: a matching rule, the logic, and fixtures.
+#
+# The specification names four sub-tools: internal-git, github-mirror,
+# webhook-alert and portal-sse. Only the ones that have code are listed here.
+# A sub-tool is "partial" until every rule the specification gives it is built.
+tools:
+  - name: internal-git
+    path: tools/internal-git
+    status: partial
+    match: tools/internal-git/match.go
+    logic: tools/internal-git/errortask.go
+    fixtures: tools/internal-git/fixtures

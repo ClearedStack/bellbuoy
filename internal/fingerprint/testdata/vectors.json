@@ -1,0 +1,200 @@
+[
+  {
+    "worker": "keelworks",
+    "code": "E_TIMEOUT",
+    "pattern": "build-step-slow",
+    "fingerprint": "3d0bab2ff68c8f670dc17fa80d7e7dbafde711599967c295949787ffa8d06db5"
+  },
+  {
+    "worker": "keelworks",
+    "code": "E_PARSE",
+    "pattern": "build-step-slow",
+    "fingerprint": "d41023234044602681e54dab9c92f95895fa08548cd7aadb5f233d36cef185d8"
+  },
+  {
+    "worker": "keelworks",
+    "code": "E_NEEDS_SUBTOOL",
+    "pattern": "build-step-slow",
+    "fingerprint": "4ce5a396ccfa2bde167e30d915945632865ff5fc7e2344d5f12e0ff0c6395ce4"
+  },
+  {
+    "worker": "shipkeeper",
+    "code": "E_TIMEOUT",
+    "pattern": "build-step-slow",
+    "fingerprint": "4b5a0efc2ba9f60e60e56000580a08756c4652acf38766bcae7a6e3c45c40530"
+  },
+  {
+    "worker": "keelworks",
+    "code": "E_TIMEOUT",
+    "pattern": "test-report-empty",
+    "fingerprint": "49fe49c43fbc345b8e68b82f064528c5d88b9fed3d671f85ae46daaf6482a361"
+  },
+  {
+    "worker": "bellbuoy",
+    "code": "E_TIMEOUT",
+    "pattern": "webhook-endpoint-slow",
+    "fingerprint": "f686e1b80c6bc9a2b2cda4ea1c8183781f459220e3f6e22e56f0b430a48b1e01"
+  },
+  {
+    "worker": "w",
+    "code": "E_PARSE",
+    "pattern": "p",
+    "fingerprint": "db5633a8366fa293e647ed7476baddc327976a0ac7ab51736d0230ea537061f9"
+  },
+  {
+    "worker": "worker2",
+    "code": "E_PARSE",
+    "pattern": "http-503-from-forge",
+    "fingerprint": "43342a1fa3f47668c209c97a907c931748df39762fcd30dba373d25128647845"
+  },
+  {
+    "worker": "",
+    "code": "E_PARSE",
+    "pattern": "p",
+    "error": "E_PARSE: worker name is malformed"
+  },
+  {
+    "worker": "Keelworks",
+    "code": "E_PARSE",
+    "pattern": "p",
+    "error": "E_PARSE: worker name is malformed"
+  },
+  {
+    "worker": "keel works",
+    "code": "E_PARSE",
+    "pattern": "p",
+    "error": "E_PARSE: worker name is malformed"
+  },
+  {
+    "worker": "2keel",
+    "code": "E_PARSE",
+    "pattern": "p",
+    "error": "E_PARSE: worker name is malformed"
+  },
+  {
+    "worker": "-keel",
+    "code": "E_PARSE",
+    "pattern": "p",
+    "error": "E_PARSE: worker name is malformed"
+  },
+  {
+    "worker": "keel_works",
+    "code": "E_PARSE",
+    "pattern": "p",
+    "error": "E_PARSE: worker name is malformed"
+  },
+  {
+    "worker": "node-a.example.internal",
+    "code": "E_PARSE",
+    "pattern": "p",
+    "error": "E_PARSE: worker name is malformed"
+  },
+  {
+    "worker": "keelworks\n",
+    "code": "E_PARSE",
+    "pattern": "p",
+    "error": "E_PARSE: worker name is malformed"
+  },
+  {
+    "worker": "kéelworks",
+    "code": "E_PARSE",
+    "pattern": "p",
+    "error": "E_PARSE: worker name is malformed"
+  },
+  {
+    "worker": "keelworks",
+    "code": "",
+    "pattern": "p",
+    "error": "E_PARSE: error code is malformed"
+  },
+  {
+    "worker": "keelworks",
+    "code": "e_parse",
+    "pattern": "p",
+    "error": "E_PARSE: error code is malformed"
+  },
+  {
+    "worker": "keelworks",
+    "code": "PARSE",
+    "pattern": "p",
+    "error": "E_PARSE: error code is malformed"
+  },
+  {
+    "worker": "keelworks",
+    "code": " E_PARSE",
+    "pattern": "p",
+    "error": "E_PARSE: error code is malformed"
+  },
+  {
+    "worker": "keelworks",
+    "code": "E_",
+    "pattern": "p",
+    "error": "E_PARSE: error code is malformed"
+  },
+  {
+    "worker": "keelworks",
+    "code": "E_Parse",
+    "pattern": "p",
+    "error": "E_PARSE: error code is malformed"
+  },
+  {
+    "worker": "keelworks",
+    "code": "E_DISK_FULL",
+    "pattern": "p",
+    "error": "E_NEEDS_SUBTOOL: error code is well formed and not one of the three public codes"
+  },
+  {
+    "worker": "keelworks",
+    "code": "E_TIMEOUT_2",
+    "pattern": "p",
+    "error": "E_NEEDS_SUBTOOL: error code is well formed and not one of the three public codes"
+  },
+  {
+    "worker": "keelworks",
+    "code": "E_PARSE",
+    "pattern": "",
+    "error": "E_PARSE: failure pattern is malformed"
+  },
+  {
+    "worker": "keelworks",
+    "code": "E_PARSE",
+    "pattern": "Build-Step",
+    "error": "E_PARSE: failure pattern is malformed"
+  },
+  {
+    "worker": "keelworks",
+    "code": "E_PARSE",
+    "pattern": "build step",
+    "error": "E_PARSE: failure pattern is malformed"
+  },
+  {
+    "worker": "keelworks",
+    "code": "E_PARSE",
+    "pattern": "build--step",
+    "error": "E_PARSE: failure pattern is malformed"
+  },
+  {
+    "worker": "keelworks",
+    "code": "E_PARSE",
+    "pattern": "build-step-",
+    "error": "E_PARSE: failure pattern is malformed"
+  },
+  {
+    "worker": "keelworks",
+    "code": "E_PARSE",
+    "pattern": "10.0.0.7",
+    "error": "E_PARSE: failure pattern is malformed"
+  },
+  {
+    "worker": "keelworks",
+    "code": "E_PARSE",
+    "pattern": "dial 10.0.0.7:5432 refused",
+    "error": "E_PARSE: failure pattern is malformed"
+  },
+  {
+    "worker": "keelworks",
+    "code": "E_PARSE",
+    "pattern": "build\nstep",
+    "error": "E_PARSE: failure pattern is malformed"
+  }
+]

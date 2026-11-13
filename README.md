@@ -12,9 +12,77 @@
 
 ---
 
-> **Status: design.** Nothing is built yet. This repository holds the specification and the prompt for building it, and no code.
+> **Status: design.** The first milestone is built and tested: the fingerprint, and the rule that the same failure seen again adds to one task. Everything else in the specification is not built. There is no worker to deploy yet.
 
 Bellbuoy is stage 10 of the ClearedStack pipeline. ClearedStack is an open pipeline that finds ideas for government-contracting tools, screens and scores them, and builds each one from the public rule. Bellbuoy is meant to be understood and used without the rest.
+
+## What works today
+
+Two things, tested against an in-memory stand-in for Plainforge. Nothing here talks to a network.
+
+1. **The fingerprint.** A failure is three values: the worker name, one of the three public error codes (`E_TIMEOUT`, `E_PARSE`, `E_NEEDS_SUBTOOL`), and a failure pattern. The fingerprint is the SHA-256 of those three, as 64 hexadecimal characters. The same three values give the same fingerprint on any machine. A worker name or pattern must be a plain name (lowercase letters, digits, single hyphens, at most 64 characters); anything else is refused, not repaired.
+2. **Open a task or add to it.** For each failure, Bellbuoy looks for an open task with that fingerprint. If there is one, its occurrence count goes up by one. If there is none, a task is opened with a count of one. A closed task is never added to; the next failure opens a new one. A saved example shows two hundred identical failures becoming one task with a count of 200.
+
+What happens to an item that is not a good failure report:
+
+| Item | Result | Code |
+| --- | --- | --- |
+| Broken: not one JSON object, a missing field, a malformed name | Refused. Nothing is written. | `E_PARSE` |
+| Valid but with no rule: another kind of item, an extra field, an error code that is not one of the three | Paused. Nothing is written. The rest carry on. | `E_NEEDS_SUBTOOL` |
+| The task store takes too long | Not delivered. Nothing is written. | `E_TIMEOUT` |
+
+A result never repeats text from the item or from the task store.
+
+### Run it
+
+You need Go 1.24 or later. There are no other dependencies.
+
+```sh
+go test ./...
+```
+
+To try it by hand, give `cmd/replay` one failure per line. It prints what happened to each line and the tasks left at the end:
+
+```sh
+go run ./cmd/replay < tools/internal-git/fixtures/two-hundred-identical/input.jsonl
+```
+
+`cmd/replay` is a way to try the milestone. It is not the Bellbuoy worker.
+
+### Saved examples
+
+| Where | What it shows |
+| --- | --- |
+| `internal/fingerprint/testdata/vectors.json` | The exact fingerprint for good values and the exact error for bad ones. |
+| `tools/internal-git/fixtures/two-hundred-identical/` | Two hundred identical failures become one task. |
+| `tools/internal-git/fixtures/distinct-failures/` | A different worker, code or pattern gets its own task. Key order and spacing do not matter. |
+| `tools/internal-git/fixtures/unfamiliar-is-paused/` | Valid items with no rule are paused and the rest carry on. |
+| `tools/internal-git/fixtures/broken-is-refused/` | Broken items are refused and the rest carry on. |
+
+Each fixture folder holds `input.jsonl` and the exact `expected.json`. After a deliberate change in behaviour, `go test ./... -update` rewrites the expected files; read the diff before committing it.
+
+### Layout
+
+| Path | What it is |
+| --- | --- |
+| `internal/errcode` | The three public error codes and the only error type shown outside. |
+| `internal/fingerprint` | The fingerprint function. |
+| `internal/plainforge` | The small interface to Plainforge’s tasks, and the in-memory stand-in. |
+| `tools/registry.yaml` | The list of sub-tools that have code. |
+| `tools/internal-git` | The `internal-git` sub-tool: matching rule (`match.go`), logic (`errortask.go`), fixtures. Partial. |
+| `internal/replay`, `cmd/replay` | Runs saved items through the sub-tool, for the fixture tests and for trying it by hand. |
+
+## Not yet done
+
+Everything in `SPEC.md` apart from the two things above. In particular:
+
+- Leasing work from Muster (`lease`, `heartbeat`, `complete`, `fail`, `needs_subtool`) and draining `urgent`, then `normal`, then `backfill`. There is no Muster interface or stand-in yet.
+- The rest of `internal-git`: approved edits (`DATA`, `CONFIG`, `ISSUE`), `ownership_map.json`, tasks for paused `needs_subtool` items, commits, branches and pull requests. Choosing which repository a task belongs in is not built; the stand-in is one repository’s tasks.
+- `github-mirror`, `webhook-alert` and `portal-sse`. None is started.
+- The spool at `/var/spool/cs` and retry with backoff. A timeout is reported and nothing is retried.
+- Reporting a paused item to Muster and the `P1` attention tier. A paused item is only reported in the result.
+- The worker itself: no service, no `ko` image, no Kubernetes manifests. The 30 MiB memory limit and the unprivileged, read-only pod have not been measured or exercised.
+- Keeping one task per fingerprint when more than one copy of Bellbuoy runs. The rule is safe inside one process only.
 
 ## In this repository
 

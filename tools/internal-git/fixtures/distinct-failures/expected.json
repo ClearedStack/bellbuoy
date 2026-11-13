@@ -1,0 +1,80 @@
+{
+  "outcomes": [
+    {
+      "action": "opened",
+      "task": 1,
+      "occurrences": 1,
+      "fingerprint": "3d0bab2ff68c8f670dc17fa80d7e7dbafde711599967c295949787ffa8d06db5"
+    },
+    {
+      "action": "opened",
+      "task": 2,
+      "occurrences": 1,
+      "fingerprint": "4b5a0efc2ba9f60e60e56000580a08756c4652acf38766bcae7a6e3c45c40530"
+    },
+    {
+      "action": "opened",
+      "task": 3,
+      "occurrences": 1,
+      "fingerprint": "d41023234044602681e54dab9c92f95895fa08548cd7aadb5f233d36cef185d8"
+    },
+    {
+      "action": "opened",
+      "task": 4,
+      "occurrences": 1,
+      "fingerprint": "49fe49c43fbc345b8e68b82f064528c5d88b9fed3d671f85ae46daaf6482a361"
+    },
+    {
+      "action": "added",
+      "task": 1,
+      "occurrences": 2,
+      "fingerprint": "3d0bab2ff68c8f670dc17fa80d7e7dbafde711599967c295949787ffa8d06db5"
+    },
+    {
+      "action": "added",
+      "task": 2,
+      "occurrences": 2,
+      "fingerprint": "4b5a0efc2ba9f60e60e56000580a08756c4652acf38766bcae7a6e3c45c40530"
+    },
+    {
+      "action": "added",
+      "task": 1,
+      "occurrences": 3,
+      "fingerprint": "3d0bab2ff68c8f670dc17fa80d7e7dbafde711599967c295949787ffa8d06db5"
+    }
+  ],
+  "tasks": [
+    {
+      "id": 1,
+      "title": "keelworks: E_TIMEOUT build-step-slow",
+      "body": "Worker: keelworks\nError code: E_TIMEOUT\nFailure pattern: build-step-slow\nFingerprint: 3d0bab2ff68c8f670dc17fa80d7e7dbafde711599967c295949787ffa8d06db5\n",
+      "fingerprint": "3d0bab2ff68c8f670dc17fa80d7e7dbafde711599967c295949787ffa8d06db5",
+      "occurrences": 3,
+      "open": true
+    },
+    {
+      "id": 2,
+      "title": "shipkeeper: E_TIMEOUT build-step-slow",
+      "body": "Worker: shipkeeper\nError code: E_TIMEOUT\nFailure pattern: build-step-slow\nFingerprint: 4b5a0efc2ba9f60e60e56000580a08756c4652acf38766bcae7a6e3c45c40530\n",
+      "fingerprint": "4b5a0efc2ba9f60e60e56000580a08756c4652acf38766bcae7a6e3c45c40530",
+      "occurrences": 2,
+      "open": true
+    },
+    {
+      "id": 3,
+      "title": "keelworks: E_PARSE build-step-slow",
+      "body": "Worker: keelworks\nError code: E_PARSE\nFailure pattern: build-step-slow\nFingerprint: d41023234044602681e54dab9c92f95895fa08548cd7aadb5f233d36cef185d8\n",
+      "fingerprint": "d41023234044602681e54dab9c92f95895fa08548cd7aadb5f233d36cef185d8",
+      "occurrences": 1,
+      "open": true
+    },
+    {
+      "id": 4,
+      "title": "keelworks: E_TIMEOUT test-report-empty",
+      "body": "Worker: keelworks\nError code: E_TIMEOUT\nFailure pattern: test-report-empty\nFingerprint: 49fe49c43fbc345b8e68b82f064528c5d88b9fed3d671f85ae46daaf6482a361\n",
+      "fingerprint": "49fe49c43fbc345b8e68b82f064528c5d88b9fed3d671f85ae46daaf6482a361",
+      "occurrences": 1,
+      "open": true
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{"kind":"error","worker":"keelworks","code":"E_TIMEOUT","pattern":"build-step-slow"}
+{"kind":"error","worker":"shipkeeper","code":"E_TIMEOUT","pattern":"build-step-slow"}
+{"kind":"error","worker":"keelworks","code":"E_PARSE","pattern":"build-step-slow"}
+{"kind":"error","worker":"keelworks","code":"E_TIMEOUT","pattern":"test-report-empty"}
+{"pattern":"build-step-slow","code":"E_TIMEOUT","worker":"keelworks","kind":"error"}
+{"kind":"error","worker":"shipkeeper","code":"E_TIMEOUT","pattern":"build-step-slow"}
+{ "kind" : "error", "worker" : "keelworks", "code" : "E_TIMEOUT", "pattern" : "build-step-slow" }

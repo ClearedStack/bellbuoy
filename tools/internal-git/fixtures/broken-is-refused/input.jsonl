@@ -1,0 +1,20 @@
+{"kind":"error","worker":"keelworks","code":"E_PARSE","pattern":"report-not-json"}
+{"kind":"error","worker":"keelworks","code":"E_PARSE","pattern":"report-not-json"
+not json at all
+
+[{"kind":"error","worker":"keelworks","code":"E_PARSE","pattern":"report-not-json"}]
+null
+{"worker":"keelworks","code":"E_PARSE","pattern":"report-not-json"}
+{"kind":7,"worker":"keelworks","code":"E_PARSE","pattern":"report-not-json"}
+{"kind":"error","worker":"keelworks","code":"E_PARSE"}
+{"kind":"error","worker":"keelworks","code":"E_PARSE","pattern":null}
+{"kind":"error","worker":"Keelworks","code":"E_PARSE","pattern":"report-not-json"}
+{"kind":"error","worker":"keelworks","code":"e_parse","pattern":"report-not-json"}
+{"kind":"error","worker":"keelworks","code":"timeout","pattern":"report-not-json"}
+{"kind":"error","worker":"keelworks","code":"E_PARSE","pattern":"report not json"}
+{"kind":"error","worker":"keelworks","code":"E_PARSE","pattern":"dial 10.0.0.7:5432 on node-a.example.internal refused"}
+{"kind":"error","worker":"keelworks","code":"E_PARSE","pattern":"report--not-json"}
+{"kind":"error","worker":"keelworks","code":"E_PARSE","pattern":"report-not-json-"}
+{"kind":"error","worker":"keelworks","code":"E_PARSE","pattern":""}
+{"kind":"error","worker":"keelworks","code":"E_PARSE","pattern":"report-not-json"} trailing
+{"kind":"error","worker":"keelworks","code":"E_PARSE","pattern":"report-not-json"}

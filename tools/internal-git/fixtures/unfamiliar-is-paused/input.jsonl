@@ -1,0 +1,6 @@
+{"kind":"error","worker":"keelworks","code":"E_TIMEOUT","pattern":"build-step-slow"}
+{"kind":"error","worker":"keelworks","code":"E_DISK_FULL","pattern":"build-step-slow"}
+{"kind":"edit","class":"CONFIG"}
+{"kind":"needs_subtool","worker":"keelworks"}
+{"kind":"error","worker":"keelworks","code":"E_TIMEOUT","pattern":"build-step-slow","severity":"P0"}
+{"kind":"error","worker":"keelworks","code":"E_TIMEOUT","pattern":"build-step-slow"}
