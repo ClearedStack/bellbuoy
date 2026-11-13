@@ -1,0 +1,42 @@
+{
+  "about": "A failure seen for the first time opens a task in the repository that owns the worker. The task text holds the sanitized pattern, never the raw message.",
+  "job": {
+    "id": "job-0002",
+    "lane": "normal",
+    "kind": "error",
+    "payload": {
+      "worker": "keelworks",
+      "code": "E_PARSE",
+      "pattern": "unexpected token at line 14 of /srv/build/plan-7f3a.json on node-3 (10.0.0.7)",
+      "item": "PA-0042"
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "state": {
+      "task": {
+        "repo": "keelworks",
+        "id": "keelworks#1",
+        "created": true,
+        "occurrences": 1,
+        "worker": "keelworks",
+        "code": "E_PARSE",
+        "fingerprint": "2add8d86aa2081ce33a414ecaf8e334a3ae3d0fa6ea1a6e8daf84b35e9877108"
+      }
+    },
+    "effects": {
+      "tasks": [
+        {
+          "id": "keelworks#1",
+          "repo": "keelworks",
+          "key": "2add8d86aa2081ce33a414ecaf8e334a3ae3d0fa6ea1a6e8daf84b35e9877108",
+          "title": "keelworks: E_PARSE [2add8d86aa20]",
+          "body": "Worker: keelworks\nError code: E_PARSE\nFingerprint: 2add8d86aa2081ce33a414ecaf8e334a3ae3d0fa6ea1a6e8daf84b35e9877108\nFailure pattern: unexpected token at line # of # on #\nFirst seen on item: PA-0042\n\nOpened by bellbuoy. Repeats of this failure are counted on this task.",
+          "occurrences": 1,
+          "open": true
+        }
+      ]
+    }
+  }
+}

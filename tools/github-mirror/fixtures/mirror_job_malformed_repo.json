@@ -1,0 +1,24 @@
+{
+  "about": "A repository name that is really an address is broken data, and the address does not appear in the error.",
+  "job": {
+    "id": "job-0111",
+    "lane": "normal",
+    "kind": "mirror",
+    "payload": {
+      "repo": "https://example.invalid/x.git",
+      "content": [
+        "source"
+      ]
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_PARSE",
+      "reason": "repository name is missing or malformed"
+    },
+    "state": {},
+    "effects": {}
+  }
+}

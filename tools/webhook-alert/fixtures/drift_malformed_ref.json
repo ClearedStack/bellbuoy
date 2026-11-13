@@ -1,0 +1,21 @@
+{
+  "about": "A drift reference that is really a sentence is broken data. Free text never reaches the webhook.",
+  "job": {
+    "id": "job-0210",
+    "lane": "urgent",
+    "kind": "drift",
+    "payload": {
+      "ref": "the clause on page nine changed"
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_PARSE",
+      "reason": "drift reference is missing or malformed"
+    },
+    "state": {},
+    "effects": {}
+  }
+}

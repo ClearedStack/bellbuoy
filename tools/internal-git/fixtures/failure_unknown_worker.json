@@ -1,0 +1,23 @@
+{
+  "about": "A worker the ownership map does not list has no repository to send the work to. The job is paused instead of guessing one.",
+  "job": {
+    "id": "job-0010",
+    "lane": "normal",
+    "kind": "error",
+    "payload": {
+      "worker": "newcomer",
+      "code": "E_PARSE",
+      "pattern": "x"
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_NEEDS_SUBTOOL",
+      "reason": "no repository is recorded as owning this worker"
+    },
+    "state": {},
+    "effects": {}
+  }
+}

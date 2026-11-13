@@ -1,0 +1,52 @@
+{
+  "about": "A newly paused kind of item is a new fingerprint like any other and alerts once.",
+  "job": {
+    "id": "job-0207",
+    "lane": "normal",
+    "kind": "needs_subtool",
+    "payload": {
+      "worker": "keelworks",
+      "pattern": "no rule covers this build target"
+    }
+  },
+  "state": {
+    "task": {
+      "repo": "keelworks",
+      "id": "keelworks#1",
+      "created": true,
+      "occurrences": 1,
+      "worker": "keelworks",
+      "code": "E_NEEDS_SUBTOOL",
+      "fingerprint": "49ba3ba27195299b6d15591a9569d2ab5ff2c065c34fc2f90a83588b2224b445"
+    }
+  },
+  "want": {
+    "match": true,
+    "state": {
+      "task": {
+        "repo": "keelworks",
+        "id": "keelworks#1",
+        "created": true,
+        "occurrences": 1,
+        "worker": "keelworks",
+        "code": "E_NEEDS_SUBTOOL",
+        "fingerprint": "49ba3ba27195299b6d15591a9569d2ab5ff2c065c34fc2f90a83588b2224b445"
+      }
+    },
+    "effects": {
+      "alerts": [
+        {
+          "source": "bellbuoy",
+          "kind": "needs_subtool",
+          "lane": "normal",
+          "new": true,
+          "worker": "keelworks",
+          "code": "E_NEEDS_SUBTOOL",
+          "fingerprint": "49ba3ba27195299b6d15591a9569d2ab5ff2c065c34fc2f90a83588b2224b445",
+          "occurrences": 1,
+          "task": "keelworks#1"
+        }
+      ]
+    }
+  }
+}

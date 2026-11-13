@@ -1,0 +1,25 @@
+{
+  "about": "A mirror job that asks for a container image to be pushed is paused. No part of it is sent, not even the source it also names.",
+  "job": {
+    "id": "job-0105",
+    "lane": "normal",
+    "kind": "mirror",
+    "payload": {
+      "repo": "keelworks",
+      "content": [
+        "source",
+        "image"
+      ]
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_NEEDS_SUBTOOL",
+      "reason": "this kind of content may not be mirrored"
+    },
+    "state": {},
+    "effects": {}
+  }
+}

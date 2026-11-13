@@ -1,0 +1,19 @@
+{
+  "about": "A status job is not for this sub-tool. The matching rule says no and nothing happens.",
+  "job": {
+    "id": "job-0031",
+    "lane": "normal",
+    "kind": "status",
+    "payload": {
+      "topic": "pill",
+      "edit": "ed-0001",
+      "state": "Building"
+    }
+  },
+  "state": {},
+  "want": {
+    "match": false,
+    "state": {},
+    "effects": {}
+  }
+}

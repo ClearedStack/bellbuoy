@@ -1,0 +1,22 @@
+{
+  "about": "A drift job with a field no rule covers is paused.",
+  "job": {
+    "id": "job-0211",
+    "lane": "urgent",
+    "kind": "drift",
+    "payload": {
+      "ref": "rule-0007",
+      "text": "new wording"
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_NEEDS_SUBTOOL",
+      "reason": "job payload has a field no rule covers"
+    },
+    "state": {},
+    "effects": {}
+  }
+}

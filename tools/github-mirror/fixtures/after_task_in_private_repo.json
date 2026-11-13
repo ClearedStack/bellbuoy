@@ -1,0 +1,42 @@
+{
+  "about": "internal-git has opened a task in a repository with no public mirror. The matching rule says no and nothing leaves.",
+  "job": {
+    "id": "job-0103",
+    "lane": "urgent",
+    "kind": "crash",
+    "payload": {
+      "worker": "shipkeeper",
+      "code": "E_TIMEOUT",
+      "pattern": "process stopped",
+      "tier": "P0"
+    }
+  },
+  "state": {
+    "task": {
+      "repo": "shipkeeper",
+      "id": "shipkeeper#1",
+      "created": true,
+      "occurrences": 1,
+      "worker": "shipkeeper",
+      "code": "E_TIMEOUT",
+      "fingerprint": "0000000000000000000000000000000000000000000000000000000000000000",
+      "tier": "P0"
+    }
+  },
+  "want": {
+    "match": false,
+    "state": {
+      "task": {
+        "repo": "shipkeeper",
+        "id": "shipkeeper#1",
+        "created": true,
+        "occurrences": 1,
+        "worker": "shipkeeper",
+        "code": "E_TIMEOUT",
+        "fingerprint": "0000000000000000000000000000000000000000000000000000000000000000",
+        "tier": "P0"
+      }
+    },
+    "effects": {}
+  }
+}

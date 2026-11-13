@@ -1,0 +1,24 @@
+{
+  "about": "Plainforge answers with something unexpected. The error is E_PARSE.",
+  "job": {
+    "id": "job-0015",
+    "lane": "normal",
+    "kind": "error",
+    "payload": {
+      "worker": "muster",
+      "code": "E_PARSE",
+      "pattern": "x"
+    }
+  },
+  "fault": "E_PARSE",
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_PARSE",
+      "reason": "the outside answer was not understood"
+    },
+    "state": {},
+    "effects": {}
+  }
+}

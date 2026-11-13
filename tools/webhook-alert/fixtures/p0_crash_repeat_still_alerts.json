@@ -1,0 +1,57 @@
+{
+  "about": "A P0 crash alerts even when its fingerprint is already known.",
+  "job": {
+    "id": "job-0203",
+    "lane": "urgent",
+    "kind": "crash",
+    "payload": {
+      "worker": "shipkeeper",
+      "code": "E_TIMEOUT",
+      "pattern": "process stopped",
+      "tier": "P0"
+    }
+  },
+  "state": {
+    "task": {
+      "repo": "shipkeeper",
+      "id": "shipkeeper#1",
+      "created": false,
+      "occurrences": 3,
+      "worker": "shipkeeper",
+      "code": "E_TIMEOUT",
+      "fingerprint": "49ba3ba27195299b6d15591a9569d2ab5ff2c065c34fc2f90a83588b2224b445",
+      "tier": "P0"
+    }
+  },
+  "want": {
+    "match": true,
+    "state": {
+      "task": {
+        "repo": "shipkeeper",
+        "id": "shipkeeper#1",
+        "created": false,
+        "occurrences": 3,
+        "worker": "shipkeeper",
+        "code": "E_TIMEOUT",
+        "fingerprint": "49ba3ba27195299b6d15591a9569d2ab5ff2c065c34fc2f90a83588b2224b445",
+        "tier": "P0"
+      }
+    },
+    "effects": {
+      "alerts": [
+        {
+          "source": "bellbuoy",
+          "kind": "crash",
+          "lane": "urgent",
+          "tier": "P0",
+          "new": false,
+          "worker": "shipkeeper",
+          "code": "E_TIMEOUT",
+          "fingerprint": "49ba3ba27195299b6d15591a9569d2ab5ff2c065c34fc2f90a83588b2224b445",
+          "occurrences": 3,
+          "task": "shipkeeper#1"
+        }
+      ]
+    }
+  }
+}

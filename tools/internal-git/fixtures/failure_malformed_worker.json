@@ -1,0 +1,23 @@
+{
+  "about": "A worker name that is not shaped like a registry name is broken data. A host name is not a worker name.",
+  "job": {
+    "id": "job-0011",
+    "lane": "normal",
+    "kind": "error",
+    "payload": {
+      "worker": "node-3.internal.example",
+      "code": "E_PARSE",
+      "pattern": "x"
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_PARSE",
+      "reason": "worker name is missing or malformed"
+    },
+    "state": {},
+    "effects": {}
+  }
+}

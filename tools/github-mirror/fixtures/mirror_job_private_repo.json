@@ -1,0 +1,24 @@
+{
+  "about": "A mirror job for a repository that has no public mirror is paused.",
+  "job": {
+    "id": "job-0108",
+    "lane": "normal",
+    "kind": "mirror",
+    "payload": {
+      "repo": "shipkeeper",
+      "content": [
+        "source"
+      ]
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_NEEDS_SUBTOOL",
+      "reason": "this repository has no public mirror"
+    },
+    "state": {},
+    "effects": {}
+  }
+}
