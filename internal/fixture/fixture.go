@@ -17,93 +17,28 @@ import (
 	"flag"
 	"os"
 	"path/filepath"
-	"sync"
 	"testing"
 
 	"github.com/ClearedStack/bellbuoy/internal/codes"
-	"github.com/ClearedStack/bellbuoy/internal/muster"
-	"github.com/ClearedStack/bellbuoy/internal/ownership"
 	"github.com/ClearedStack/bellbuoy/internal/plainforge"
+	"github.com/ClearedStack/bellbuoy/internal/standin"
 	"github.com/ClearedStack/bellbuoy/internal/work"
 )
 
 var update = flag.Bool("update", false, "rewrite the expected results in fixture files")
 
-// Recorder is a stand-in for the owner's webhook. It keeps what it is sent.
-type Recorder struct {
-	mu    sync.Mutex
-	sent  []json.RawMessage
-	fault error
-}
-
-// Send keeps the body, or fails if a fault is set.
-func (r *Recorder) Send(_ context.Context, body []byte) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	if r.fault != nil {
-		return r.fault
-	}
-	r.sent = append(r.sent, append(json.RawMessage(nil), body...))
-	return nil
-}
-
-// SetFault makes every later Send fail with err. A nil err clears it.
-func (r *Recorder) SetFault(err error) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	r.fault = err
-}
-
-// Sent returns every body received, in order.
-func (r *Recorder) Sent() []json.RawMessage {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	return append([]json.RawMessage(nil), r.sent...)
-}
-
 // Deps are the stand-ins a sub-tool is built on for a fixture run.
-type Deps struct {
-	Forge  *plainforge.Memory
-	Queue  *muster.Memory
-	Owners *ownership.Map
-	Alerts *Recorder
-}
+type Deps = standin.Set
 
 // NewDeps returns fresh stand-ins and the ownership map at the given path.
-func NewDeps(ownersPath string) (Deps, error) {
-	owners, err := ownership.Load(ownersPath)
-	if err != nil {
-		return Deps{}, err
-	}
-	return Deps{Forge: plainforge.NewMemory(), Queue: muster.NewMemory(), Owners: owners, Alerts: &Recorder{}}, nil
-}
-
-// Effects is everything the stand-ins hold after a run.
-type Effects struct {
-	Tasks   []plainforge.Task          `json:"tasks,omitempty"`
-	Changes []plainforge.Change        `json:"changes,omitempty"`
-	Mirrors []plainforge.MirrorRequest `json:"mirrors,omitempty"`
-	Events  []muster.Event             `json:"events,omitempty"`
-	Alerts  []json.RawMessage          `json:"alerts,omitempty"`
-}
-
-// Collect reads the effects out of the stand-ins.
-func (d Deps) Collect() Effects {
-	return Effects{
-		Tasks:   d.Forge.Tasks(),
-		Changes: d.Forge.Changes(),
-		Mirrors: d.Forge.Mirrors(),
-		Events:  d.Queue.Events(),
-		Alerts:  d.Alerts.Sent(),
-	}
-}
+func NewDeps(ownersPath string) (Deps, error) { return standin.New(ownersPath) }
 
 // Result is the exact outcome a fixture expects.
 type Result struct {
-	Match   bool         `json:"match"`
-	Error   *codes.Error `json:"error,omitempty"`
-	State   work.State   `json:"state"`
-	Effects Effects      `json:"effects"`
+	Match   bool            `json:"match"`
+	Error   *codes.Error    `json:"error,omitempty"`
+	State   work.State      `json:"state"`
+	Effects standin.Effects `json:"effects"`
 }
 
 // Case is one fixture file.
@@ -147,15 +82,9 @@ func Play(c Case, ownersPath string, build func(Deps) work.Tool) (Result, error)
 	switch c.Fault {
 	case "":
 	case string(codes.Timeout):
-		fault := codes.TimedOut("the outside call took too long")
-		deps.Forge.SetFault(fault)
-		deps.Queue.SetFault(fault)
-		deps.Alerts.SetFault(fault)
+		deps.SetFault(codes.TimedOut("the outside call took too long"))
 	case string(codes.Parse):
-		fault := codes.Broken("the outside answer was not understood")
-		deps.Forge.SetFault(fault)
-		deps.Queue.SetFault(fault)
-		deps.Alerts.SetFault(fault)
+		deps.SetFault(codes.Broken("the outside answer was not understood"))
 	default:
 		return Result{}, codes.Broken("fixture names a fault that does not exist")
 	}

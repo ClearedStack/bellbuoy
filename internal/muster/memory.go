@@ -48,10 +48,14 @@ func NewMemory() *Memory {
 var _ Queue = (*Memory)(nil)
 
 // Add puts a job at the back of its lane.
-func (m *Memory) Add(job work.Job) {
+func (m *Memory) Add(job work.Job) { m.AddTo(job.Lane, job) }
+
+// AddTo puts a job at the back of the named lane, whatever lane the job
+// itself claims. It is for showing what happens when the two disagree.
+func (m *Memory) AddTo(lane string, job work.Job) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.lanes[job.Lane] = append(m.lanes[job.Lane], job)
+	m.lanes[lane] = append(m.lanes[lane], job)
 }
 
 // SetFault makes every later call fail with err. A nil err clears it.
@@ -98,7 +102,7 @@ func (m *Memory) Events() []Event {
 	return append([]Event(nil), m.events...)
 }
 
-// Leased returns the references of the jobs currently out on lease.
+// Leased returns how many jobs are currently out on lease.
 func (m *Memory) Leased() int {
 	m.mu.Lock()
 	defer m.mu.Unlock()
