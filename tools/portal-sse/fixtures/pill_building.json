@@ -1,0 +1,27 @@
+{
+  "about": "An edit has reached Building. The pill event carries the edit reference and the state, and nothing else.",
+  "job": {
+    "id": "job-03-building",
+    "lane": "normal",
+    "kind": "status",
+    "payload": {
+      "topic": "pill",
+      "edit": "ed-0001",
+      "state": "Building"
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "state": {},
+    "effects": {
+      "events": [
+        {
+          "topic": "pill",
+          "edit": "ed-0001",
+          "state": "Building"
+        }
+      ]
+    }
+  }
+}

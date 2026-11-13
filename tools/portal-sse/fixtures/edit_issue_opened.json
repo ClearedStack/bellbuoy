@@ -1,0 +1,45 @@
+{
+  "about": "internal-git has opened a task for an approved ISSUE edit. The visitor's pill moves to Approved.",
+  "job": {
+    "id": "job-0313",
+    "lane": "normal",
+    "kind": "edit",
+    "payload": {
+      "edit": "ed-0004",
+      "class": "ISSUE",
+      "target": "platform/registry.json",
+      "approval": "cs-0004",
+      "summary": "x"
+    }
+  },
+  "state": {
+    "task": {
+      "repo": "clearedstack.com",
+      "id": "clearedstack.com#1",
+      "created": true,
+      "occurrences": 1,
+      "edit": "ed-0004"
+    }
+  },
+  "want": {
+    "match": true,
+    "state": {
+      "task": {
+        "repo": "clearedstack.com",
+        "id": "clearedstack.com#1",
+        "created": true,
+        "occurrences": 1,
+        "edit": "ed-0004"
+      }
+    },
+    "effects": {
+      "events": [
+        {
+          "topic": "pill",
+          "edit": "ed-0004",
+          "state": "Approved"
+        }
+      ]
+    }
+  }
+}

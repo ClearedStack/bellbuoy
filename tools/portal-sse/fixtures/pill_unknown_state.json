@@ -1,0 +1,23 @@
+{
+  "about": "A pill state that is not one of the four is paused instead of being shown to visitors.",
+  "job": {
+    "id": "job-0305",
+    "lane": "normal",
+    "kind": "status",
+    "payload": {
+      "topic": "pill",
+      "edit": "ed-0001",
+      "state": "Reverted"
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_NEEDS_SUBTOOL",
+      "reason": "no rule covers this edit state"
+    },
+    "state": {},
+    "effects": {}
+  }
+}

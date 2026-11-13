@@ -1,0 +1,23 @@
+{
+  "about": "The registry stream has no rule yet. A status job for it is paused.",
+  "job": {
+    "id": "job-0309",
+    "lane": "normal",
+    "kind": "status",
+    "payload": {
+      "topic": "registry",
+      "edit": "ed-0001",
+      "state": "Live"
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_NEEDS_SUBTOOL",
+      "reason": "no rule covers this stream"
+    },
+    "state": {},
+    "effects": {}
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "about": "Drift is not shown on the live stream. The matching rule says no.",
+  "job": {
+    "id": "job-0317",
+    "lane": "urgent",
+    "kind": "drift",
+    "payload": {
+      "ref": "rule-0007"
+    }
+  },
+  "state": {},
+  "want": {
+    "match": false,
+    "state": {},
+    "effects": {}
+  }
+}

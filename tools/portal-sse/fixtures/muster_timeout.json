@@ -1,0 +1,24 @@
+{
+  "about": "Muster does not take the event in time. The error is E_TIMEOUT, so the event stays staged and is tried again.",
+  "job": {
+    "id": "job-0316",
+    "lane": "normal",
+    "kind": "status",
+    "payload": {
+      "topic": "pill",
+      "edit": "ed-0001",
+      "state": "Live"
+    }
+  },
+  "fault": "E_TIMEOUT",
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_TIMEOUT",
+      "reason": "the outside call took too long"
+    },
+    "state": {},
+    "effects": {}
+  }
+}
