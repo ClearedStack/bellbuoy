@@ -1,0 +1,20 @@
+{
+  "repos": {
+    "bellbuoy": {"mirror": true},
+    "clearedstack.com": {"mirror": true},
+    "keelworks": {"mirror": true},
+    "muster": {"mirror": true},
+    "shipkeeper": {"mirror": false}
+  },
+  "workers": {
+    "bellbuoy": "bellbuoy",
+    "keelworks": "keelworks",
+    "muster": "muster",
+    "shipkeeper": "shipkeeper"
+  },
+  "paths": [
+    {"prefix": "platform/", "repo": "clearedstack.com"},
+    {"prefix": "platform/workers/bellbuoy/", "repo": "bellbuoy"},
+    {"prefix": "deploy/values.json", "repo": "shipkeeper"}
+  ]
+}

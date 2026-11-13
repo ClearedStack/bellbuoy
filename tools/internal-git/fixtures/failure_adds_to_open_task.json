@@ -1,0 +1,52 @@
+{
+  "about": "A failure whose fingerprint matches an open task adds one to that task's count. It differs from the first report only in numbers and names, so the fingerprint is the same.",
+  "job": {
+    "id": "job-0003",
+    "lane": "normal",
+    "kind": "error",
+    "payload": {
+      "worker": "muster",
+      "code": "E_TIMEOUT",
+      "pattern": "dial tcp 10.0.0.9:5432: i/o timeout after 12s on node-8"
+    }
+  },
+  "seed": [
+    {
+      "id": "muster#1",
+      "repo": "muster",
+      "key": "49ba3ba27195299b6d15591a9569d2ab5ff2c065c34fc2f90a83588b2224b445",
+      "title": "muster: E_TIMEOUT [49ba3ba27195]",
+      "body": "seeded",
+      "occurrences": 7,
+      "open": true
+    }
+  ],
+  "state": {},
+  "want": {
+    "match": true,
+    "state": {
+      "task": {
+        "repo": "muster",
+        "id": "muster#1",
+        "created": false,
+        "occurrences": 8,
+        "worker": "muster",
+        "code": "E_TIMEOUT",
+        "fingerprint": "49ba3ba27195299b6d15591a9569d2ab5ff2c065c34fc2f90a83588b2224b445"
+      }
+    },
+    "effects": {
+      "tasks": [
+        {
+          "id": "muster#1",
+          "repo": "muster",
+          "key": "49ba3ba27195299b6d15591a9569d2ab5ff2c065c34fc2f90a83588b2224b445",
+          "title": "muster: E_TIMEOUT [49ba3ba27195]",
+          "body": "seeded",
+          "occurrences": 8,
+          "open": true
+        }
+      ]
+    }
+  }
+}

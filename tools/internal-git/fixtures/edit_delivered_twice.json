@@ -1,0 +1,40 @@
+{
+  "about": "The same approved edit delivered three times makes one change. The second and third deliveries change nothing.",
+  "job": {
+    "id": "job-0022",
+    "lane": "normal",
+    "kind": "edit",
+    "payload": {
+      "edit": "ed-0003",
+      "class": "CONFIG",
+      "target": "deploy/values.json",
+      "approval": "cs-0003",
+      "content": "{}\n"
+    }
+  },
+  "repeat": 3,
+  "state": {},
+  "want": {
+    "match": true,
+    "state": {
+      "change": {
+        "repo": "shipkeeper",
+        "branch": "edit/ed-0003",
+        "edit": "ed-0003",
+        "created": false
+      }
+    },
+    "effects": {
+      "changes": [
+        {
+          "repo": "shipkeeper",
+          "branch": "edit/ed-0003",
+          "path": "deploy/values.json",
+          "content": "{}\n",
+          "title": "Portal edit ed-0003: deploy/values.json",
+          "message": "Portal edit ed-0003: deploy/values.json\n\nClass: CONFIG\nApproval: cs-0003"
+        }
+      ]
+    }
+  }
+}

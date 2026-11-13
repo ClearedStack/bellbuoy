@@ -1,0 +1,23 @@
+{
+  "about": "A needs_subtool job that carries some other error code contradicts itself and is refused.",
+  "job": {
+    "id": "job-0007",
+    "lane": "normal",
+    "kind": "needs_subtool",
+    "payload": {
+      "worker": "keelworks",
+      "code": "E_PARSE",
+      "pattern": "no rule"
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_PARSE",
+      "reason": "a needs_subtool job carries a different error code"
+    },
+    "state": {},
+    "effects": {}
+  }
+}

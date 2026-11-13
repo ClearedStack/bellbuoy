@@ -1,0 +1,25 @@
+{
+  "about": "A CONFIG edit that carries a summary instead of content is broken data.",
+  "job": {
+    "id": "job-0029",
+    "lane": "normal",
+    "kind": "edit",
+    "payload": {
+      "edit": "ed-0010",
+      "class": "CONFIG",
+      "target": "platform/registry.json",
+      "approval": "cs-0010",
+      "summary": "please change it"
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_PARSE",
+      "reason": "a DATA or CONFIG edit must carry content and nothing else"
+    },
+    "state": {},
+    "effects": {}
+  }
+}

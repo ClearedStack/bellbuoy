@@ -1,0 +1,39 @@
+{
+  "about": "An approved DATA edit is handled the same way as CONFIG: a branch and a request to merge, never a write to the default branch. The longest matching path prefix picks the repository.",
+  "job": {
+    "id": "job-0021",
+    "lane": "normal",
+    "kind": "edit",
+    "payload": {
+      "edit": "ed-0002",
+      "class": "DATA",
+      "target": "platform/workers/bellbuoy/sample.csv",
+      "approval": "cs-0002",
+      "content": "name,value\nexample,1\n"
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "state": {
+      "change": {
+        "repo": "bellbuoy",
+        "branch": "edit/ed-0002",
+        "edit": "ed-0002",
+        "created": true
+      }
+    },
+    "effects": {
+      "changes": [
+        {
+          "repo": "bellbuoy",
+          "branch": "edit/ed-0002",
+          "path": "platform/workers/bellbuoy/sample.csv",
+          "content": "name,value\nexample,1\n",
+          "title": "Portal edit ed-0002: platform/workers/bellbuoy/sample.csv",
+          "message": "Portal edit ed-0002: platform/workers/bellbuoy/sample.csv\n\nClass: DATA\nApproval: cs-0002"
+        }
+      ]
+    }
+  }
+}

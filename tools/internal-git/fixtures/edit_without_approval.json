@@ -1,0 +1,24 @@
+{
+  "about": "An edit with no owner approval is refused. Bellbuoy only acts on approved edits.",
+  "job": {
+    "id": "job-0026",
+    "lane": "normal",
+    "kind": "edit",
+    "payload": {
+      "edit": "ed-0007",
+      "class": "CONFIG",
+      "target": "platform/registry.json",
+      "content": "x"
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_PARSE",
+      "reason": "edit carries no owner approval"
+    },
+    "state": {},
+    "effects": {}
+  }
+}

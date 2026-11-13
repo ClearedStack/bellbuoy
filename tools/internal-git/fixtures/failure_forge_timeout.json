@@ -1,0 +1,24 @@
+{
+  "about": "Plainforge does not answer in time. The error is E_TIMEOUT and no state is recorded, so the job is tried again later.",
+  "job": {
+    "id": "job-0014",
+    "lane": "normal",
+    "kind": "error",
+    "payload": {
+      "worker": "muster",
+      "code": "E_PARSE",
+      "pattern": "x"
+    }
+  },
+  "fault": "E_TIMEOUT",
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_TIMEOUT",
+      "reason": "the outside call took too long"
+    },
+    "state": {},
+    "effects": {}
+  }
+}

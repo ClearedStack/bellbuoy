@@ -1,0 +1,42 @@
+{
+  "about": "An approved ISSUE edit becomes a task. Delivered twice, it is still one task with a count of one.",
+  "job": {
+    "id": "job-0023",
+    "lane": "normal",
+    "kind": "edit",
+    "payload": {
+      "edit": "ed-0004",
+      "class": "ISSUE",
+      "target": "platform/registry.json",
+      "approval": "cs-0004",
+      "summary": "  The example row for stage ten shows an old name.  "
+    }
+  },
+  "repeat": 2,
+  "state": {},
+  "want": {
+    "match": true,
+    "state": {
+      "task": {
+        "repo": "clearedstack.com",
+        "id": "clearedstack.com#1",
+        "created": false,
+        "occurrences": 1,
+        "edit": "ed-0004"
+      }
+    },
+    "effects": {
+      "tasks": [
+        {
+          "id": "clearedstack.com#1",
+          "repo": "clearedstack.com",
+          "key": "edit-ed-0004",
+          "title": "Portal edit ed-0004: platform/registry.json",
+          "body": "The example row for stage ten shows an old name.\n\nTarget: platform/registry.json\nApproval: cs-0004\n\nOpened by bellbuoy from an owner-approved Portal edit.",
+          "occurrences": 1,
+          "open": true
+        }
+      ]
+    }
+  }
+}
