@@ -1,0 +1,44 @@
+{
+  "about": "internal-git has proposed a change in a repository with a public mirror. The mirror is asked to pick up source.",
+  "job": {
+    "id": "job-0102",
+    "lane": "normal",
+    "kind": "edit",
+    "payload": {
+      "edit": "ed-0001",
+      "class": "CONFIG",
+      "target": "platform/registry.json",
+      "approval": "cs-0001",
+      "content": "{}\n"
+    }
+  },
+  "state": {
+    "change": {
+      "repo": "clearedstack.com",
+      "branch": "edit/ed-0001",
+      "edit": "ed-0001",
+      "created": true
+    }
+  },
+  "want": {
+    "match": true,
+    "state": {
+      "change": {
+        "repo": "clearedstack.com",
+        "branch": "edit/ed-0001",
+        "edit": "ed-0001",
+        "created": true
+      }
+    },
+    "effects": {
+      "mirrors": [
+        {
+          "repo": "clearedstack.com",
+          "content": [
+            "source"
+          ]
+        }
+      ]
+    }
+  }
+}

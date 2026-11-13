@@ -1,0 +1,25 @@
+{
+  "about": "The mirror target answers with something unexpected. The error is E_PARSE.",
+  "job": {
+    "id": "job-0114",
+    "lane": "normal",
+    "kind": "mirror",
+    "payload": {
+      "repo": "keelworks",
+      "content": [
+        "source"
+      ]
+    }
+  },
+  "fault": "E_PARSE",
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_PARSE",
+      "reason": "the outside answer was not understood"
+    },
+    "state": {},
+    "effects": {}
+  }
+}

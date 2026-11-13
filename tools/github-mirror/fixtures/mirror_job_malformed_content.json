@@ -1,0 +1,25 @@
+{
+  "about": "Content that is not shaped like a content name is broken data.",
+  "job": {
+    "id": "job-0112",
+    "lane": "normal",
+    "kind": "mirror",
+    "payload": {
+      "repo": "keelworks",
+      "content": [
+        "source",
+        "../../etc"
+      ]
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_PARSE",
+      "reason": "mirror job names malformed content"
+    },
+    "state": {},
+    "effects": {}
+  }
+}

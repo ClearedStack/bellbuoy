@@ -1,0 +1,24 @@
+{
+  "about": "Raw captures never go to the public mirror.",
+  "job": {
+    "id": "job-0107",
+    "lane": "normal",
+    "kind": "mirror",
+    "payload": {
+      "repo": "keelworks",
+      "content": [
+        "capture"
+      ]
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_NEEDS_SUBTOOL",
+      "reason": "this kind of content may not be mirrored"
+    },
+    "state": {},
+    "effects": {}
+  }
+}
