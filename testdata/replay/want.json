@@ -1,0 +1,285 @@
+{
+  "answers": [
+    {
+      "job": "job-0013",
+      "verdict": "complete"
+    },
+    {
+      "job": "job-0014",
+      "verdict": "complete"
+    },
+    {
+      "job": "job-0017",
+      "verdict": "complete"
+    },
+    {
+      "job": "job-0002",
+      "verdict": "complete"
+    },
+    {
+      "job": "job-0003",
+      "verdict": "complete"
+    },
+    {
+      "job": "job-0004",
+      "verdict": "complete"
+    },
+    {
+      "job": "job-0005",
+      "verdict": "complete"
+    },
+    {
+      "job": "job-0006",
+      "verdict": "complete"
+    },
+    {
+      "job": "job-0007",
+      "verdict": "complete"
+    },
+    {
+      "job": "job-0008",
+      "verdict": "complete"
+    },
+    {
+      "job": "job-0009",
+      "verdict": "needs_subtool",
+      "code": "E_NEEDS_SUBTOOL",
+      "reason": "no rule covers this class of edit"
+    },
+    {
+      "job": "job-0010",
+      "verdict": "complete"
+    },
+    {
+      "job": "job-0011",
+      "verdict": "fail",
+      "code": "E_PARSE"
+    },
+    {
+      "job": "job-0012",
+      "verdict": "needs_subtool",
+      "code": "E_NEEDS_SUBTOOL",
+      "reason": "no rule covers this kind of job"
+    },
+    {
+      "job": "job-0015",
+      "verdict": "needs_subtool",
+      "code": "E_NEEDS_SUBTOOL",
+      "reason": "no rule covers this kind of job"
+    },
+    {
+      "job": "job-0001",
+      "verdict": "complete"
+    },
+    {
+      "job": "job-0016",
+      "verdict": "needs_subtool",
+      "code": "E_NEEDS_SUBTOOL",
+      "reason": "this kind of content may not be mirrored"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "shipkeeper#1",
+      "repo": "shipkeeper",
+      "key": "e6a109583200812342df943cc049e86dbec8ad144a6acf129fd9e92e2852ef6b",
+      "title": "shipkeeper: E_TIMEOUT [e6a109583200]",
+      "body": "Worker: shipkeeper\nError code: E_TIMEOUT\nFingerprint: e6a109583200812342df943cc049e86dbec8ad144a6acf129fd9e92e2852ef6b\nFailure pattern: process stopped\n\nOpened by bellbuoy. Repeats of this failure are counted on this task.",
+      "occurrences": 2,
+      "open": true
+    },
+    {
+      "id": "muster#1",
+      "repo": "muster",
+      "key": "49ba3ba27195299b6d15591a9569d2ab5ff2c065c34fc2f90a83588b2224b445",
+      "title": "muster: E_TIMEOUT [49ba3ba27195]",
+      "body": "Worker: muster\nError code: E_TIMEOUT\nFingerprint: 49ba3ba27195299b6d15591a9569d2ab5ff2c065c34fc2f90a83588b2224b445\nFailure pattern: dial tcp # timeout after # on #\nFirst seen on item: PA-0042\n\nOpened by bellbuoy. Repeats of this failure are counted on this task.",
+      "occurrences": 2,
+      "open": true
+    },
+    {
+      "id": "bellbuoy#1",
+      "repo": "bellbuoy",
+      "key": "edit-ed-0002",
+      "title": "Portal edit ed-0002: platform/workers/bellbuoy/notes.json",
+      "body": "The example row for stage ten shows an old name.\n\nTarget: platform/workers/bellbuoy/notes.json\nApproval: cs-0002\n\nOpened by bellbuoy from an owner-approved Portal edit.",
+      "occurrences": 1,
+      "open": true
+    },
+    {
+      "id": "keelworks#1",
+      "repo": "keelworks",
+      "key": "4d6f0aa43b18cde6d16717e576d0a565f31513645201c5c2e23c9c2296231c6b",
+      "title": "keelworks: E_NEEDS_SUBTOOL [4d6f0aa43b18]",
+      "body": "Worker: keelworks\nError code: E_NEEDS_SUBTOOL\nFingerprint: 4d6f0aa43b18cde6d16717e576d0a565f31513645201c5c2e23c9c2296231c6b\nFailure pattern: no rule covers this build target\nFirst seen on item: PA-0107\n\nOpened by bellbuoy. Repeats of this failure are counted on this task.",
+      "occurrences": 1,
+      "open": true
+    }
+  ],
+  "changes": [
+    {
+      "repo": "clearedstack.com",
+      "branch": "edit/ed-0001",
+      "path": "platform/registry.json",
+      "content": "{\n  \"example\": true\n}\n",
+      "title": "Portal edit ed-0001: platform/registry.json",
+      "message": "Portal edit ed-0001: platform/registry.json\n\nClass: CONFIG\nApproval: cs-0001"
+    }
+  ],
+  "mirrors": [
+    {
+      "repo": "muster",
+      "content": [
+        "task"
+      ]
+    },
+    {
+      "repo": "muster",
+      "content": [
+        "task"
+      ]
+    },
+    {
+      "repo": "clearedstack.com",
+      "content": [
+        "source"
+      ]
+    },
+    {
+      "repo": "bellbuoy",
+      "content": [
+        "task"
+      ]
+    },
+    {
+      "repo": "keelworks",
+      "content": [
+        "task"
+      ]
+    },
+    {
+      "repo": "keelworks",
+      "content": [
+        "source"
+      ]
+    }
+  ],
+  "events": [
+    {
+      "topic": "operations",
+      "worker": "shipkeeper",
+      "code": "E_TIMEOUT",
+      "fingerprint": "e6a109583200812342df943cc049e86dbec8ad144a6acf129fd9e92e2852ef6b",
+      "occurrences": 1
+    },
+    {
+      "topic": "operations",
+      "worker": "shipkeeper",
+      "code": "E_TIMEOUT",
+      "fingerprint": "e6a109583200812342df943cc049e86dbec8ad144a6acf129fd9e92e2852ef6b",
+      "occurrences": 2
+    },
+    {
+      "topic": "operations",
+      "worker": "muster",
+      "code": "E_TIMEOUT",
+      "fingerprint": "49ba3ba27195299b6d15591a9569d2ab5ff2c065c34fc2f90a83588b2224b445",
+      "occurrences": 1
+    },
+    {
+      "topic": "operations",
+      "worker": "muster",
+      "code": "E_TIMEOUT",
+      "fingerprint": "49ba3ba27195299b6d15591a9569d2ab5ff2c065c34fc2f90a83588b2224b445",
+      "occurrences": 2
+    },
+    {
+      "topic": "pill",
+      "edit": "ed-0001",
+      "state": "Proposed"
+    },
+    {
+      "topic": "pill",
+      "edit": "ed-0001",
+      "state": "Approved"
+    },
+    {
+      "topic": "pill",
+      "edit": "ed-0001",
+      "state": "Building"
+    },
+    {
+      "topic": "pill",
+      "edit": "ed-0001",
+      "state": "Live"
+    },
+    {
+      "topic": "pill",
+      "edit": "ed-0002",
+      "state": "Approved"
+    },
+    {
+      "topic": "operations",
+      "worker": "keelworks",
+      "code": "E_NEEDS_SUBTOOL",
+      "fingerprint": "4d6f0aa43b18cde6d16717e576d0a565f31513645201c5c2e23c9c2296231c6b",
+      "occurrences": 1
+    }
+  ],
+  "alerts": [
+    {
+      "source": "bellbuoy",
+      "kind": "crash",
+      "lane": "urgent",
+      "tier": "P0",
+      "new": true,
+      "worker": "shipkeeper",
+      "code": "E_TIMEOUT",
+      "fingerprint": "e6a109583200812342df943cc049e86dbec8ad144a6acf129fd9e92e2852ef6b",
+      "occurrences": 1,
+      "task": "shipkeeper#1"
+    },
+    {
+      "source": "bellbuoy",
+      "kind": "drift",
+      "lane": "urgent",
+      "new": true,
+      "ref": "rule-0007"
+    },
+    {
+      "source": "bellbuoy",
+      "kind": "crash",
+      "lane": "urgent",
+      "tier": "P0",
+      "new": false,
+      "worker": "shipkeeper",
+      "code": "E_TIMEOUT",
+      "fingerprint": "e6a109583200812342df943cc049e86dbec8ad144a6acf129fd9e92e2852ef6b",
+      "occurrences": 2,
+      "task": "shipkeeper#1"
+    },
+    {
+      "source": "bellbuoy",
+      "kind": "error",
+      "lane": "normal",
+      "new": true,
+      "worker": "muster",
+      "code": "E_TIMEOUT",
+      "fingerprint": "49ba3ba27195299b6d15591a9569d2ab5ff2c065c34fc2f90a83588b2224b445",
+      "occurrences": 1,
+      "task": "muster#1"
+    },
+    {
+      "source": "bellbuoy",
+      "kind": "needs_subtool",
+      "lane": "normal",
+      "new": true,
+      "worker": "keelworks",
+      "code": "E_NEEDS_SUBTOOL",
+      "fingerprint": "4d6f0aa43b18cde6d16717e576d0a565f31513645201c5c2e23c9c2296231c6b",
+      "occurrences": 1,
+      "task": "keelworks#1"
+    }
+  ],
+  "held": 0
+}

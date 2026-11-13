@@ -1,0 +1,20 @@
+# Bellbuoy's image is built straight from source with ko. There is no
+# Dockerfile.
+#
+#   KO_DOCKER_REPO=lazarette.clearedstack.svc.cluster.local:5000 \
+#     ko build --base-import-paths ./cmd/bellbuoy
+#
+# gives lazarette.clearedstack.svc.cluster.local:5000/bellbuoy.
+#
+# ko's default base image is used. It has no shell and runs as a user other
+# than root, which is what the pod posture in SPEC.md asks for.
+builds:
+  - id: bellbuoy
+    main: ./cmd/bellbuoy
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s
+      - -w
