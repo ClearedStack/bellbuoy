@@ -42,6 +42,106 @@ import (
 // maxFile is the largest ownership map accepted, in bytes.
 const maxFile = 1 << 20
 
+// DefaultPath is where the ConfigMap mounts ownership_map.json in the cluster.
+const DefaultPath = "/etc/bellbuoy/ownership_map.json"
+
+// DefaultJSON is the cluster ownership map shipped in deploy/bellbuoy.yaml.
+// A test in cmd/bellbuoy keeps the two identical.
+const DefaultJSON = `{
+  "repos": {
+    "clearedstack.com": { "mirror": true },
+    "muster":           { "mirror": true },
+    "logbook":          { "mirror": true },
+    "plainforge":       { "mirror": true },
+    "lazarette":        { "mirror": true },
+    "keelworks":        { "mirror": true },
+    "shipkeeper":       { "mirror": true },
+    "trawl":            { "mirror": true },
+    "sextant":          { "mirror": true },
+    "assay":            { "mirror": true },
+    "countersign":      { "mirror": true },
+    "waybill":          { "mirror": true },
+    "moldloft":         { "mirror": true },
+    "shakedown":        { "mirror": true },
+    "chartroom":        { "mirror": true },
+    "tidegauge":        { "mirror": true },
+    "bellbuoy":         { "mirror": true }
+  },
+  "workers": {
+    "conn":        "clearedstack.com",
+    "muster":      "muster",
+    "logbook":     "logbook",
+    "plainforge":  "plainforge",
+    "lazarette":   "lazarette",
+    "keelworks":   "keelworks",
+    "shipkeeper":  "shipkeeper",
+    "trawl":       "trawl",
+    "sextant":     "sextant",
+    "assay":       "assay",
+    "countersign": "countersign",
+    "waybill":     "waybill",
+    "moldloft":    "moldloft",
+    "shakedown":   "shakedown",
+    "chartroom":   "chartroom",
+    "tidegauge":   "tidegauge",
+    "bellbuoy":    "bellbuoy"
+  },
+  "paths": [
+    { "prefix": "src/",    "repo": "clearedstack.com" },
+    { "prefix": "deploy/", "repo": "clearedstack.com" }
+  ],
+  "elements": {
+    "command.hero.mission":        { "repository": "clearedstack.com", "file": "src/data/site.ts",          "kind": "DATA" },
+    "portal.home.hero":            { "repository": "clearedstack.com", "file": "src/app/guides/page.tsx",   "kind": "CONFIG" },
+    "command.attention.p0":        { "repository": "shipkeeper",       "file": "app.yaml",                  "kind": "ISSUE" },
+    "command.attention.p1":        { "repository": "clearedstack.com", "file": "deploy/muster/app.yaml",    "kind": "ISSUE" },
+    "command.attention.p2":        { "repository": "countersign",      "file": "app.yaml",                  "kind": "ISSUE" },
+    "decide.sandbox.test":         { "repository": "clearedstack.com", "file": "src/app/guides/page.tsx",   "kind": "ISSUE" },
+    "app.conn.manifest":           { "repository": "clearedstack.com", "file": "app.yaml",                  "kind": "CONFIG" },
+    "app.muster.manifest":         { "repository": "clearedstack.com", "file": "deploy/muster/app.yaml",    "kind": "CONFIG" },
+    "app.logbook.manifest":        { "repository": "clearedstack.com", "file": "deploy/logbook/app.yaml",   "kind": "CONFIG" },
+    "app.plainforge.manifest":     { "repository": "plainforge",       "file": "app.yaml",                  "kind": "CONFIG" },
+    "app.lazarette.manifest":      { "repository": "lazarette",        "file": "app.yaml",                  "kind": "CONFIG" },
+    "app.keelworks.manifest":      { "repository": "keelworks",        "file": "app.yaml",                  "kind": "CONFIG" },
+    "app.shipkeeper.manifest":     { "repository": "shipkeeper",       "file": "app.yaml",                  "kind": "CONFIG" },
+    "worker.trawl.manifest":       { "repository": "trawl",            "file": "app.yaml",                  "kind": "CONFIG" },
+    "worker.sextant.manifest":     { "repository": "sextant",          "file": "app.yaml",                  "kind": "CONFIG" },
+    "worker.assay.manifest":       { "repository": "assay",            "file": "app.yaml",                  "kind": "CONFIG" },
+    "worker.countersign.manifest": { "repository": "countersign",      "file": "app.yaml",                  "kind": "CONFIG" },
+    "worker.waybill.manifest":     { "repository": "waybill",          "file": "app.yaml",                  "kind": "CONFIG" },
+    "worker.moldloft.manifest":    { "repository": "moldloft",         "file": "app.yaml",                  "kind": "CONFIG" },
+    "worker.shakedown.manifest":   { "repository": "shakedown",        "file": "app.yaml",                  "kind": "CONFIG" },
+    "worker.chartroom.manifest":   { "repository": "chartroom",        "file": "app.yaml",                  "kind": "CONFIG" },
+    "worker.tidegauge.manifest":   { "repository": "tidegauge",        "file": "app.yaml",                  "kind": "CONFIG" },
+    "worker.bellbuoy.manifest":    { "repository": "bellbuoy",         "file": "app.yaml",                  "kind": "CONFIG" },
+    "worker.trawl.role":           { "repository": "trawl",            "file": "app.yaml",                  "kind": "CONFIG" },
+    "worker.sextant.role":         { "repository": "sextant",          "file": "app.yaml",                  "kind": "CONFIG" },
+    "worker.assay.role":           { "repository": "assay",            "file": "app.yaml",                  "kind": "CONFIG" },
+    "worker.countersign.role":     { "repository": "countersign",      "file": "app.yaml",                  "kind": "CONFIG" },
+    "worker.waybill.role":         { "repository": "waybill",          "file": "app.yaml",                  "kind": "CONFIG" },
+    "worker.moldloft.role":        { "repository": "moldloft",         "file": "app.yaml",                  "kind": "CONFIG" },
+    "worker.shakedown.role":       { "repository": "shakedown",        "file": "app.yaml",                  "kind": "CONFIG" },
+    "worker.chartroom.role":       { "repository": "chartroom",        "file": "app.yaml",                  "kind": "CONFIG" },
+    "worker.tidegauge.role":       { "repository": "tidegauge",        "file": "app.yaml",                  "kind": "CONFIG" },
+    "worker.bellbuoy.role":        { "repository": "bellbuoy",         "file": "app.yaml",                  "kind": "CONFIG" },
+    "pipeline.trawl":              { "repository": "trawl",            "file": "app.yaml",                  "kind": "ISSUE" },
+    "pipeline.sextant":            { "repository": "sextant",          "file": "app.yaml",                  "kind": "ISSUE" },
+    "pipeline.assay":              { "repository": "assay",            "file": "app.yaml",                  "kind": "ISSUE" },
+    "pipeline.countersign":        { "repository": "countersign",      "file": "app.yaml",                  "kind": "ISSUE" },
+    "pipeline.waybill":            { "repository": "waybill",          "file": "app.yaml",                  "kind": "ISSUE" },
+    "pipeline.moldloft":           { "repository": "moldloft",         "file": "app.yaml",                  "kind": "ISSUE" },
+    "pipeline.shakedown":          { "repository": "shakedown",        "file": "app.yaml",                  "kind": "ISSUE" },
+    "pipeline.chartroom":          { "repository": "chartroom",        "file": "app.yaml",                  "kind": "ISSUE" },
+    "pipeline.tidegauge":          { "repository": "tidegauge",        "file": "app.yaml",                  "kind": "ISSUE" },
+    "pipeline.bellbuoy":           { "repository": "bellbuoy",         "file": "app.yaml",                  "kind": "ISSUE" }
+  }
+}`
+
+// Default returns the built-in cluster ownership map.
+func Default() (*Map, error) {
+	return Parse([]byte(DefaultJSON))
+}
+
 // registryRepos lists the seventeen repositories in the naming registry.
 var registryRepos = []string{
 	"assay",

@@ -170,11 +170,26 @@ spec:
             - -muster
             - http://muster.clearedstack.svc.cluster.local:8080
             - -plainforge
-            - http://plainforge.clearedstack.svc.cluster.local
+            - http://plainforge.clearedstack.svc.cluster.local:8080
             - -owners
             - /etc/bellbuoy/ownership_map.json
             - -spool
             - /var/spool/cs
+            - -listen
+            - ":8080"
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 20
+            timeoutSeconds: 3
           env:
             - name: CONTRACT_VERSION
               value: v1

@@ -321,11 +321,11 @@ func checkRefusal(t *testing.T, status int, raw json.RawMessage, callErr error) 
 		t.Errorf("cause %s: ErrMoveNotAllowed = %v", refusal.Cause, errors.Is(callErr, muster.ErrMoveNotAllowed))
 	}
 	fixedReasons := map[string]bool{
-		"muster asked to be tried again":               true,
-		codes.From(muster.ErrLeaseNotHeld).Reason:      true,
-		codes.From(muster.ErrMoveNotAllowed).Reason:    true,
-		"muster refused the call":                      true,
-		"muster does not know this contract version":   true,
+		"muster asked to be tried again":             true,
+		codes.From(muster.ErrLeaseNotHeld).Reason:    true,
+		codes.From(muster.ErrMoveNotAllowed).Reason:  true,
+		"muster refused the call":                    true,
+		"muster does not know this contract version": true,
 	}
 	if !fixedReasons[got.Reason] {
 		t.Errorf("client reported unexpected non-fixed reason %q", got.Reason)
