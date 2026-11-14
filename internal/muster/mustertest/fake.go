@@ -247,7 +247,7 @@ func (f *Fake) serve(w http.ResponseWriter, r *http.Request) {
 		id, _ := s.fields["id"].(string)
 		kind, _ := s.fields["kind"].(string)
 		lease := id + "." + strconv.Itoa(s.attempt)
-		if kind == "incident" || kind == "release" {
+		if kind == "incident" {
 			lease = kind + ":" + lease
 		}
 		f.held[lease] = s

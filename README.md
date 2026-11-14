@@ -100,7 +100,7 @@ Every rule has saved examples, and a change in behaviour fails a test.
 | `internal/tasks/testdata` | 2, one of them the two hundred identical failures |
 | `internal/fingerprint/testdata` | 7 fingerprints, worked out by a separate implementation |
 | `testdata/replay` | 1 run of the whole worker |
-| `testdata/contract` | 51 examples copied from Muster's contract v1. The 31 that are worker calls are replayed through the client. |
+| `testdata/contract` | 50 examples copied from Muster's contract v1. The 29 that are worker calls are replayed through the client. |
 
 After a deliberate change, `go test ./tools/... -update` rewrites the expected results. Read the difference before committing it.
 
@@ -120,7 +120,7 @@ After a deliberate change, `go test ./tools/... -update` rewrites the expected r
 | Requirement in `SPEC.md` | State |
 | --- | --- |
 | Drain `urgent` before `normal` before `backfill` | Built and tested. |
-| `lease`, `heartbeat`, `complete`, `fail`, `needs_subtool` over HTTP | Built to Muster's contract v1. Muster's 31 saved examples of the worker calls are replayed: the client sends exactly the request in each of the 25 a correct client can send, and reads all 31 answers as the contract means them. Not yet run against a running Muster. |
+| `lease`, `heartbeat`, `complete`, `fail`, `needs_subtool` over HTTP | Built to Muster's contract v1. Muster's 29 saved examples of the worker calls are replayed: the client sends exactly the request in each of the 23 a correct client can send, and reads all 29 answers as the contract means them. Not yet run against a running Muster. |
 | A task for every held or paused item | Built and tested end to end against the fake server. Tasks go to a ledger file, not to Plainforge. |
 | Fingerprint and open-or-add-to | Built and tested. |
 | Edit-to-repo loop for `DATA`, `CONFIG`, `ISSUE` | Built and tested against the stand-in, in the shape assumed before Muster's contract. Not wired to Muster's proposals. No client for the real Plainforge. |

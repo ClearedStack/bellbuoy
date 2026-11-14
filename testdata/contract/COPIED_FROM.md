@@ -2,7 +2,7 @@
 
 Everything else in this folder is a copy of `contract/v1/examples/` from the
 Muster repository, branch `claude/repo-build-prompt-1csgx6`, commit
-`7706321bf5f7fc89d385b247ebbf60edd9754a70`. Muster's copy is the master. Do
+`a362cb1051448d496b5b97ff808ebda60370502f`. Muster's copy is the master. Do
 not edit the copies here: copy the folder again when Muster's contract
 changes, and run the tests.
 
