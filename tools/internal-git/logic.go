@@ -2,6 +2,7 @@ package internalgit
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 
 	"github.com/ClearedStack/bellbuoy/internal/codes"
@@ -34,6 +35,22 @@ type failure struct {
 	Tier    string `json:"tier"`
 }
 
+// incidentLease is what Muster's lease of an incident step carries besides
+// the fields every lease has.
+type incidentLease struct {
+	Incident json.RawMessage `json:"incident"`
+}
+
+// incident says that a worker stopped on an item: the item, the worker, the
+// code it gave (E_PARSE for a held item, E_NEEDS_SUBTOOL for a paused one)
+// and the state the item was in when the worker stopped.
+type incident struct {
+	ID     string `json:"id"`
+	Worker string `json:"worker"`
+	Code   string `json:"code"`
+	State  string `json:"state"`
+}
+
 // edit is the payload of an edit job: a Portal edit an owner has approved.
 type edit struct {
 	Edit     string  `json:"edit"`
@@ -47,10 +64,49 @@ type edit struct {
 // Run does the work for one job. Everything is checked before anything is
 // written, so a job that is refused leaves the repository untouched.
 func (t *Tool) Run(ctx context.Context, job work.Job, st *work.State) error {
-	if job.Kind == work.KindEdit {
+	switch job.Kind {
+	case work.KindEdit:
 		return t.runEdit(ctx, job, st)
+	case work.KindIncident:
+		return t.runIncident(ctx, job, st)
 	}
 	return t.runFailure(ctx, job, st)
+}
+
+// runIncident files the task for an item Muster holds or has paused. Muster
+// gives no failure message, so the pattern is made from what it does give:
+// whether the item was paused or held, and the state it is in. Items that
+// the same worker left the same way in the same state share one task.
+func (t *Tool) runIncident(ctx context.Context, job work.Job, st *work.State) error {
+	var lease incidentLease
+	if err := work.Decode(job.Payload, &lease); err != nil {
+		return err
+	}
+	var in incident
+	if err := work.Decode(lease.Incident, &in); err != nil {
+		return err
+	}
+	if !sanitize.IsItem(job.ID) || in.ID != job.ID {
+		return codes.Broken("item reference is malformed or does not match the step")
+	}
+	if !sanitize.IsKind(in.State) {
+		return codes.Broken("item state is missing or malformed")
+	}
+	var verb string
+	switch in.Code {
+	case string(codes.Parse):
+		verb = "held in "
+	case string(codes.NeedsSubtool):
+		verb = "paused in "
+	case string(codes.Timeout):
+		return codes.Unfamiliar("no rule covers an incident with this code")
+	}
+	return t.file(ctx, st, failure{
+		Worker:  in.Worker,
+		Code:    in.Code,
+		Pattern: verb + strings.ReplaceAll(in.State, "_", " "),
+		Item:    job.ID,
+	}, work.KindError)
 }
 
 func (t *Tool) runFailure(ctx context.Context, job work.Job, st *work.State) error {
@@ -58,10 +114,15 @@ func (t *Tool) runFailure(ctx context.Context, job work.Job, st *work.State) err
 	if err := work.Decode(job.Payload, &f); err != nil {
 		return err
 	}
+	return t.file(ctx, st, f, job.Kind)
+}
+
+// file checks a failure and opens or adds to its task.
+func (t *Tool) file(ctx context.Context, st *work.State, f failure, kind string) error {
 	if !sanitize.IsWorker(f.Worker) {
 		return codes.Broken("worker name is missing or malformed")
 	}
-	code, err := failureCode(job.Kind, f.Code)
+	code, err := failureCode(kind, f.Code)
 	if err != nil {
 		return err
 	}

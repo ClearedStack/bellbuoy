@@ -1,0 +1,47 @@
+{
+  "about": "A state spelled with an underscore, screened_out, reads as two words in the pattern. An item reference may have up to nine digits.",
+  "job": {
+    "id": "PA-123456789",
+    "lane": "normal",
+    "kind": "incident",
+    "lease": "incident:PA-123456789.3",
+    "state": "screened_out",
+    "attempt": 3,
+    "payload": {
+      "incident": {
+        "id": "PA-123456789",
+        "worker": "muster",
+        "code": "E_PARSE",
+        "state": "screened_out"
+      }
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "state": {
+      "task": {
+        "repo": "muster",
+        "id": "muster#1",
+        "created": true,
+        "occurrences": 1,
+        "worker": "muster",
+        "code": "E_PARSE",
+        "fingerprint": "051d53ded0ec4d3cf40d82203098c36ac30fb0909a2fe80ac7bb7fb45cc2da34"
+      }
+    },
+    "effects": {
+      "tasks": [
+        {
+          "id": "muster#1",
+          "repo": "muster",
+          "key": "051d53ded0ec4d3cf40d82203098c36ac30fb0909a2fe80ac7bb7fb45cc2da34",
+          "title": "muster: E_PARSE [051d53ded0ec]",
+          "body": "Worker: muster\nError code: E_PARSE\nFingerprint: 051d53ded0ec4d3cf40d82203098c36ac30fb0909a2fe80ac7bb7fb45cc2da34\nFailure pattern: held in screened out\nFirst seen on item: PA-123456789\n\nOpened by bellbuoy. Repeats of this failure are counted on this task.",
+          "occurrences": 1,
+          "open": true
+        }
+      ]
+    }
+  }
+}

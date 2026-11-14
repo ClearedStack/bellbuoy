@@ -1,0 +1,55 @@
+{
+  "about": "An incident has been counted on its task. The operations stream gets the worker, the code, the fingerprint and the count.",
+  "job": {
+    "id": "PA-0043",
+    "lane": "normal",
+    "kind": "incident",
+    "lease": "incident:PA-0043.1",
+    "state": "observed",
+    "attempt": 1,
+    "payload": {
+      "incident": {
+        "id": "PA-0043",
+        "worker": "keelworks",
+        "code": "E_PARSE",
+        "state": "observed"
+      }
+    }
+  },
+  "state": {
+    "task": {
+      "repo": "keelworks",
+      "id": "keelworks#1",
+      "created": false,
+      "occurrences": 2,
+      "worker": "keelworks",
+      "code": "E_PARSE",
+      "fingerprint": "7d1b393eb1e1fdb2c6658be465595ed13e976106549f955b227b386aa39a43f8"
+    }
+  },
+  "want": {
+    "match": true,
+    "state": {
+      "task": {
+        "repo": "keelworks",
+        "id": "keelworks#1",
+        "created": false,
+        "occurrences": 2,
+        "worker": "keelworks",
+        "code": "E_PARSE",
+        "fingerprint": "7d1b393eb1e1fdb2c6658be465595ed13e976106549f955b227b386aa39a43f8"
+      }
+    },
+    "effects": {
+      "events": [
+        {
+          "topic": "operations",
+          "worker": "keelworks",
+          "code": "E_PARSE",
+          "fingerprint": "7d1b393eb1e1fdb2c6658be465595ed13e976106549f955b227b386aa39a43f8",
+          "occurrences": 2
+        }
+      ]
+    }
+  }
+}

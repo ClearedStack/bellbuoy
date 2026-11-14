@@ -29,7 +29,7 @@ func replayOnce(t *testing.T, getenv func(string) string, args ...string) (stdou
 	return out.String(), errs.String(), code
 }
 
-// The saved example for the whole worker: seventeen jobs of every kind in,
+// The saved example for the whole worker: nineteen jobs of every kind in,
 // the exact state of Muster, Plainforge and the webhook out.
 func TestReplayMatchesTheSavedExample(t *testing.T) {
 	want, err := os.ReadFile(wantFile)
@@ -94,7 +94,7 @@ func TestReplayPostsAlertsToAConfiguredWebhook(t *testing.T) {
 	if err := json.Unmarshal([]byte(out), &rep); err != nil {
 		t.Fatal(err)
 	}
-	if len(bodies) != 5 || len(rep.Alerts) != 0 || rep.Held != 0 {
+	if len(bodies) != 6 || len(rep.Alerts) != 0 || rep.Held != 0 {
 		t.Fatalf("webhook got %d alerts, report kept %d, held %d", len(bodies), len(rep.Alerts), rep.Held)
 	}
 	if !strings.Contains(bodies[0], `"kind":"crash"`) || !strings.Contains(bodies[0], `"tier":"P0"`) {
@@ -127,14 +127,14 @@ func TestReplayWithAWebhookThatIsDownHoldsTheAlerts(t *testing.T) {
 	if err := json.Unmarshal([]byte(out), &rep); err != nil {
 		t.Fatal(err)
 	}
-	// Five jobs want an alert. They stay staged on disk, unanswered. The
-	// other twelve are answered as usual.
-	if rep.Held != 5 || len(rep.Answers) != 12 {
+	// Six jobs want an alert. They stay staged on disk, unanswered. The
+	// other thirteen are answered as usual.
+	if rep.Held != 6 || len(rep.Answers) != 13 {
 		t.Fatalf("held = %d, answers = %d", rep.Held, len(rep.Answers))
 	}
 	files, _ := filepath.Glob(filepath.Join(dir, "*.json"))
-	if len(files) != 5 {
-		t.Fatalf("%d records in the spool, want 5", len(files))
+	if len(files) != 6 {
+		t.Fatalf("%d records in the spool, want 6", len(files))
 	}
 }
 
@@ -173,7 +173,9 @@ func TestBadInputsAreReportedWithoutPaths(t *testing.T) {
 }
 
 func TestUsage(t *testing.T) {
-	for _, args := range [][]string{nil, {"serve"}, {"replay"}, {"replay", "-jobs", jobsFile}, {"replay", "-jobs", jobsFile, "-owners", ownersFile, "stray"}} {
+	for _, args := range [][]string{nil, {"lease"}, {"serve"}, {"serve", "-owners", ownersFile}, {"serve", "-muster", "http://muster.example.invalid"},
+		{"serve", "-muster", "http://muster.example.invalid", "-owners", ownersFile, "-idle", "0s"},
+		{"replay"}, {"replay", "-jobs", jobsFile}, {"replay", "-jobs", jobsFile, "-owners", ownersFile, "stray"}} {
 		var out, errs bytes.Buffer
 		if code := run(context.Background(), args, noEnv, &out, &errs); code != 2 {
 			t.Errorf("run(%v) = %d, want 2", args, code)

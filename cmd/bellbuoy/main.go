@@ -1,10 +1,9 @@
 // Command bellbuoy turns failures, paused items and approved edits into one
 // piece of work in the repository that owns the fix.
 //
-// Today it has one working mode, replay, which runs a file of jobs through
-// the whole worker against in-memory stand-ins for Muster and Plainforge and
-// prints what they hold afterwards. The mode that leases from a real Muster
-// waits on the Muster v1 contract.
+// It has two modes. serve leases steps from Muster over HTTP and works on
+// them until it is told to stop. replay runs a file of jobs through the whole
+// worker against in-memory stand-ins and prints what they hold afterwards.
 package main
 
 import (
@@ -17,11 +16,15 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"runtime/debug"
+	"strings"
 	"syscall"
 
 	"github.com/ClearedStack/bellbuoy/internal/codes"
 	"github.com/ClearedStack/bellbuoy/internal/muster"
+	"github.com/ClearedStack/bellbuoy/internal/ownership"
+	"github.com/ClearedStack/bellbuoy/internal/plainforge"
 	"github.com/ClearedStack/bellbuoy/internal/spool"
 	"github.com/ClearedStack/bellbuoy/internal/standin"
 	"github.com/ClearedStack/bellbuoy/internal/work"
@@ -36,7 +39,7 @@ const (
 	Version = "v0.1.0-draft"
 
 	// Contract is the version of the platform contract this build follows.
-	Contract = "v1"
+	Contract = muster.Contract
 
 	// WebhookEnv names the environment variable that holds the address of
 	// the owner's webhook. The address is treated as a credential.
@@ -48,7 +51,20 @@ const (
 	maxLine = work.MaxPayload + 4096
 )
 
-const usage = `bellbuoy replay -jobs FILE -owners FILE [-spool DIR]
+const usage = `bellbuoy serve -muster ADDRESS -owners FILE [-spool DIR] [-ledger FILE]
+               [-token-file FILE] [-idle TIME] [-heartbeat TIME]
+    Lease steps from the Muster at ADDRESS and work on them until told to
+    stop. Each result is written to the spool before Muster is told, and
+    removed only when Muster has acknowledged it.
+
+    Tasks are kept in the ledger file, because Plainforge has no interface
+    for tasks yet. The default ledger is tasks.ledger in the spool, and the
+    default spool is ` + spool.DefaultDir + `.
+
+    If ` + WebhookEnv + ` is set, owner alerts are posted there. If it is
+    not, no alerts are sent.
+
+bellbuoy replay -jobs FILE -owners FILE [-spool DIR]
     Run the jobs in FILE (one JSON job per line) through the worker against
     in-memory stand-ins for Muster and Plainforge, then print what the
     stand-ins hold. The same input always prints the same output.
@@ -58,9 +74,6 @@ const usage = `bellbuoy replay -jobs FILE -owners FILE [-spool DIR]
 
 bellbuoy version
     Print the name, version and contract version.
-
-Leasing from a real Muster is not built yet. It waits on the Muster v1
-contract, which is not in this repository.
 `
 
 func main() {
@@ -83,6 +96,8 @@ func run(ctx context.Context, args []string, getenv func(string) string, stdout,
 		return 0
 	case "replay":
 		return replay(ctx, args[1:], getenv, stdout, stderr)
+	case "serve":
+		return serve(ctx, args[1:], getenv, stderr)
 	case "help", "-h", "-help", "--help":
 		fmt.Fprint(stdout, usage)
 		return 0
@@ -145,7 +160,7 @@ func replay(ctx context.Context, args []string, getenv func(string) string, stdo
 		return fail(stderr, err)
 	}
 
-	deps := tools.Deps{Queue: set.Queue, Forge: set.Forge, Owners: set.Owners, Sender: set.Alerts}
+	deps := tools.Deps{Forge: set.Forge, Owners: set.Owners, Sender: set.Alerts, Stream: set.Queue}
 	if address := getenv(WebhookEnv); address != "" {
 		sender, err := webhookalert.NewHTTPSender(address, 0)
 		if err != nil {
@@ -172,6 +187,77 @@ func replay(ctx context.Context, args []string, getenv func(string) string, stdo
 	if _, err := stdout.Write(buf.Bytes()); err != nil {
 		return 1
 	}
+	return 0
+}
+
+// serve leases steps from a real Muster until ctx is done.
+//
+// Only the sub-tools that have somewhere real to deliver to are run.
+// internal-git always runs, against the task ledger. webhook-alert runs when
+// a webhook is configured. github-mirror and portal-sse do not run: the
+// ledger has no mirror, and Muster's contract v1 has no call that takes a
+// live event.
+func serve(ctx context.Context, args []string, getenv func(string) string, stderr io.Writer) int {
+	fs := flag.NewFlagSet("serve", flag.ContinueOnError)
+	fs.SetOutput(stderr)
+	address := fs.String("muster", "", "address of Muster, such as http://host:port")
+	ownersPath := fs.String("owners", "", "ownership_map.json")
+	spoolDir := fs.String("spool", spool.DefaultDir, "spool directory")
+	ledgerPath := fs.String("ledger", "", "task ledger file (default: tasks.ledger in the spool)")
+	tokenFile := fs.String("token-file", muster.DefaultTokenFile, "ServiceAccount token file")
+	idle := fs.Duration("idle", worker.DefaultIdle, "how long to wait when Muster has nothing to lease")
+	heartbeat := fs.Duration("heartbeat", worker.DefaultHeartbeat, "how often a held lease is kept alive")
+	if err := fs.Parse(args); err != nil {
+		return 2
+	}
+	if *address == "" || *ownersPath == "" || fs.NArg() != 0 || *idle <= 0 || *heartbeat <= 0 {
+		fmt.Fprint(stderr, usage)
+		return 2
+	}
+
+	queue, err := muster.NewClient(*address, *tokenFile, 0)
+	if err != nil {
+		return fail(stderr, err)
+	}
+	owners, err := ownership.Load(*ownersPath)
+	if err != nil {
+		return fail(stderr, err)
+	}
+	sp, err := spool.Open(*spoolDir)
+	if err != nil {
+		return fail(stderr, err)
+	}
+	if *ledgerPath == "" {
+		*ledgerPath = filepath.Join(*spoolDir, "tasks.ledger")
+	}
+	forge, err := plainforge.OpenLedger(*ledgerPath)
+	if err != nil {
+		return fail(stderr, err)
+	}
+
+	deps := tools.Deps{Forge: forge, Owners: owners}
+	names := []string{"internal-git"}
+	if webhook := getenv(WebhookEnv); webhook != "" {
+		sender, err := webhookalert.NewHTTPSender(webhook, 0)
+		if err != nil {
+			return fail(stderr, err)
+		}
+		deps.Sender = sender
+		names = append(names, "webhook-alert")
+	}
+
+	w := &worker.Worker{
+		Queue:     queue,
+		Tools:     tools.Only(tools.All(deps), names...),
+		Spool:     sp,
+		Log:       func(line string) { fmt.Fprintln(stderr, line) },
+		Idle:      *idle,
+		Heartbeat: *heartbeat,
+	}
+	fmt.Fprintf(stderr, "%s serve contract=%s tools=%s staged=%d unreadable=%d\n",
+		Name, Contract, strings.Join(names, ","), sp.Len(), sp.Skipped())
+	w.Run(ctx)
+	fmt.Fprintf(stderr, "%s stopped staged=%d\n", Name, sp.Len())
 	return 0
 }
 

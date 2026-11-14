@@ -1,8 +1,9 @@
 // Package portalsse is the portal-sse sub-tool. It feeds the live update
 // stream that the public Portal shows, by handing events to Muster.
 //
-// Bellbuoy does not serve the stream itself. Muster carries each event to the
-// component that does.
+// Bellbuoy does not serve the stream itself. It hands each event to a
+// publisher. Muster's contract v1 has no call that takes one, so today the
+// only publisher is the in-memory stand-in.
 package portalsse
 
 import (
@@ -15,7 +16,8 @@ const Name = "portal-sse"
 
 // Tool is the portal-sse sub-tool.
 type Tool struct {
-	Queue muster.Queue
+	// Stream is nil when there is nowhere to publish.
+	Stream muster.Publisher
 }
 
 var _ work.Tool = (*Tool)(nil)

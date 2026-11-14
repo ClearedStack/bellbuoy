@@ -13,8 +13,11 @@ import (
 )
 
 func job(id string) work.Job {
-	return work.Job{ID: id, Lane: work.LaneNormal, Kind: work.KindError, Payload: json.RawMessage(`{"worker":"muster"}`)}
+	return work.Job{ID: id, Lane: work.LaneNormal, Kind: work.KindError, Lease: id + ".1", Payload: json.RawMessage(`{"worker":"muster"}`)}
 }
+
+// key is the name a job's step is staged under.
+func key(id string) string { return job(id).Key() }
 
 func TestBackoffSchedule(t *testing.T) {
 	want := []time.Duration{
@@ -42,26 +45,26 @@ func TestPutGetDelete(t *testing.T) {
 	if err := s.Put(rec); err != nil {
 		t.Fatal(err)
 	}
-	if rec.Seq != 1 || !s.Has("job-1") || s.Len() != 1 {
-		t.Fatalf("after Put: seq=%d has=%v len=%d", rec.Seq, s.Has("job-1"), s.Len())
+	if rec.Seq != 1 || !s.Has(key("job-1")) || s.Len() != 1 {
+		t.Fatalf("after Put: seq=%d has=%v len=%d", rec.Seq, s.Has(key("job-1")), s.Len())
 	}
-	got, err := s.Get("job-1")
+	got, err := s.Get(key("job-1"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !reflect.DeepEqual(got, rec) {
 		t.Fatalf("read back differs:\n got %+v\nwant %+v", got, rec)
 	}
-	if err := s.Delete("job-1"); err != nil {
+	if err := s.Delete(key("job-1")); err != nil {
 		t.Fatal(err)
 	}
-	if s.Has("job-1") || s.Len() != 0 {
+	if s.Has(key("job-1")) || s.Len() != 0 {
 		t.Fatal("record survived Delete")
 	}
-	if err := s.Delete("job-1"); err != nil {
+	if err := s.Delete(key("job-1")); err != nil {
 		t.Fatal("deleting twice must be fine")
 	}
-	if _, err := s.Get("job-1"); err == nil {
+	if _, err := s.Get(key("job-1")); err == nil {
 		t.Fatal("Get after Delete must fail")
 	}
 }
@@ -82,14 +85,15 @@ func TestRecordsSurviveReopen(t *testing.T) {
 		t.Fatalf("reopened spool holds %d records", s.Len())
 	}
 	// Oldest first, by the order they were staged, not by name.
-	if got := s.Due(time.Unix(1000, 0)); !reflect.DeepEqual(got, []string{"job-b", "job-a", "job-c"}) {
+	if got := s.Due(time.Unix(1000, 0)); !reflect.DeepEqual(got, []string{key("job-b"), key("job-a"), key("job-c")}) {
 		t.Fatalf("Due = %v", got)
 	}
-	if got := s.Due(time.Unix(20, 0)); !reflect.DeepEqual(got, []string{"job-b", "job-a"}) {
+	if got := s.Due(time.Unix(20, 0)); !reflect.DeepEqual(got, []string{key("job-b"), key("job-a")}) {
 		t.Fatalf("Due(20) = %v", got)
 	}
-	if got := s.Unfinished(); !reflect.DeepEqual(got, []string{"job-b", "job-c"}) {
-		t.Fatalf("Unfinished = %v", got)
+	// Only steps with sub-tools still to run need their leases kept alive.
+	if got := s.Leases(); !reflect.DeepEqual(got, []string{"job-b.1", "job-c.1"}) {
+		t.Fatalf("Leases = %v", got)
 	}
 	// A new record must be numbered after the ones already there.
 	rec := &Record{Job: job("job-d")}
@@ -107,11 +111,32 @@ func TestReplacingARecordKeepsItsPlace(t *testing.T) {
 	first.Attempts = 5
 	first.RetryAt = 0
 	s.Put(first)
-	if got := s.Due(time.Unix(0, 0)); !reflect.DeepEqual(got, []string{"job-1", "job-2"}) {
+	if got := s.Due(time.Unix(0, 0)); !reflect.DeepEqual(got, []string{key("job-1"), key("job-2")}) {
 		t.Fatalf("order changed: %v", got)
 	}
 	if s.Len() != 2 {
 		t.Fatalf("len = %d", s.Len())
+	}
+}
+
+// The same step handed out again under a new lease replaces its record. It
+// does not make a second one.
+func TestANewLeaseForTheSameStepReplacesTheRecord(t *testing.T) {
+	s, _ := Open(t.TempDir())
+	rec := &Record{Job: job("PA-0042")}
+	s.Put(rec)
+	rec.Job.Lease = "PA-0042.2"
+	rec.Job.Attempt = 2
+	s.Put(rec)
+	if s.Len() != 1 {
+		t.Fatalf("len = %d, want 1", s.Len())
+	}
+	if got := s.Leases(); !reflect.DeepEqual(got, []string{"PA-0042.2"}) {
+		t.Fatalf("Leases = %v", got)
+	}
+	got, _ := s.Get(key("PA-0042"))
+	if got.Job.Lease != "PA-0042.2" {
+		t.Fatalf("lease read back = %q", got.Job.Lease)
 	}
 }
 
@@ -128,7 +153,7 @@ func TestBrokenFilesAreLeftAloneAndCounted(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if s.Len() != 1 || !s.Has("job-1") {
+	if s.Len() != 1 || !s.Has(key("job-1")) {
 		t.Fatalf("len = %d", s.Len())
 	}
 	if s.Skipped() != 2 {

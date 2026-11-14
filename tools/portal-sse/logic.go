@@ -30,7 +30,10 @@ func (t *Tool) Run(ctx context.Context, job work.Job, st *work.State) error {
 	if err != nil {
 		return err
 	}
-	return t.Queue.Publish(ctx, event)
+	if t.Stream == nil {
+		return codes.Unfamiliar("no live stream is configured")
+	}
+	return t.Stream.Publish(ctx, event)
 }
 
 // plan builds the event. It looks at nothing outside the process, and it

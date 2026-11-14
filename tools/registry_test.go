@@ -8,6 +8,10 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	// Registers the -update flag here too, so that
+	// "go test ./tools/... -update" is accepted by every package under tools.
+	_ "github.com/ClearedStack/bellbuoy/internal/fixture"
 )
 
 // readRegistry reads the small part of YAML that registry.yaml uses: one
@@ -138,5 +142,15 @@ func TestOnlyTheFirstToolIsAGate(t *testing.T) {
 		if tool.Gate() != (i == 0) {
 			t.Errorf("%s: Gate() = %v at position %d", tool.Name(), tool.Gate(), i)
 		}
+	}
+}
+
+func TestOnlyKeepsRegistryOrder(t *testing.T) {
+	var names []string
+	for _, tool := range Only(All(Deps{}), "webhook-alert", "internal-git", "no-such-tool") {
+		names = append(names, tool.Name())
+	}
+	if !reflect.DeepEqual(names, []string{"internal-git", "webhook-alert"}) {
+		t.Fatalf("Only = %v", names)
 	}
 }

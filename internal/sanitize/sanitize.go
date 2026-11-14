@@ -110,13 +110,29 @@ func IsRef(s string) bool {
 	return true
 }
 
-// IsItem reports whether s is a pipeline item reference, PA- and four digits.
+// IsItem reports whether s is a pipeline item reference: PA- and four
+// digits, or PA- and five to nine digits of which the first is not zero.
 func IsItem(s string) bool {
-	if len(s) != 7 || s[:3] != "PA-" {
+	if len(s) < 7 || len(s) > 12 || s[:3] != "PA-" {
 		return false
 	}
-	for i := 3; i < 7; i++ {
-		if !digit(s[i]) {
+	digits := s[3:]
+	for i := 0; i < len(digits); i++ {
+		if !digit(digits[i]) {
+			return false
+		}
+	}
+	return len(digits) == 4 || digits[0] != '0'
+}
+
+// IsLease reports whether s can be a lease token: 1 to 128 letters, digits,
+// dots, underscores, colons and hyphens.
+func IsLease(s string) bool {
+	if len(s) < 1 || len(s) > 128 {
+		return false
+	}
+	for i := 0; i < len(s); i++ {
+		if c := s[i]; !lower(c) && !upper(c) && !digit(c) && c != '.' && c != '_' && c != ':' && c != '-' {
 			return false
 		}
 	}

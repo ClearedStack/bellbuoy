@@ -4,12 +4,14 @@
     "clearedstack.com": {"mirror": true},
     "keelworks": {"mirror": true},
     "muster": {"mirror": true},
+    "sextant": {"mirror": true},
     "shipkeeper": {"mirror": false}
   },
   "workers": {
     "bellbuoy": "bellbuoy",
     "keelworks": "keelworks",
     "muster": "muster",
+    "sextant": "sextant",
     "shipkeeper": "shipkeeper"
   },
   "paths": [

@@ -1,0 +1,45 @@
+{
+  "about": "A further item held the same way was counted on the open task. Nobody is alerted again.",
+  "job": {
+    "id": "PA-0043",
+    "lane": "normal",
+    "kind": "incident",
+    "lease": "incident:PA-0043.1",
+    "state": "observed",
+    "attempt": 1,
+    "payload": {
+      "incident": {
+        "id": "PA-0043",
+        "worker": "keelworks",
+        "code": "E_PARSE",
+        "state": "observed"
+      }
+    }
+  },
+  "state": {
+    "task": {
+      "repo": "keelworks",
+      "id": "keelworks#1",
+      "created": false,
+      "occurrences": 2,
+      "worker": "keelworks",
+      "code": "E_PARSE",
+      "fingerprint": "7d1b393eb1e1fdb2c6658be465595ed13e976106549f955b227b386aa39a43f8"
+    }
+  },
+  "want": {
+    "match": false,
+    "state": {
+      "task": {
+        "repo": "keelworks",
+        "id": "keelworks#1",
+        "created": false,
+        "occurrences": 2,
+        "worker": "keelworks",
+        "code": "E_PARSE",
+        "fingerprint": "7d1b393eb1e1fdb2c6658be465595ed13e976106549f955b227b386aa39a43f8"
+      }
+    },
+    "effects": {}
+  }
+}

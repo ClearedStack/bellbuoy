@@ -1,0 +1,59 @@
+{
+  "about": "The first incident with a new fingerprint alerts the owner once.",
+  "job": {
+    "id": "PA-0042",
+    "lane": "normal",
+    "kind": "incident",
+    "lease": "incident:PA-0042.1",
+    "state": "observed",
+    "attempt": 1,
+    "payload": {
+      "incident": {
+        "id": "PA-0042",
+        "worker": "keelworks",
+        "code": "E_PARSE",
+        "state": "observed"
+      }
+    }
+  },
+  "state": {
+    "task": {
+      "repo": "keelworks",
+      "id": "keelworks#1",
+      "created": true,
+      "occurrences": 1,
+      "worker": "keelworks",
+      "code": "E_PARSE",
+      "fingerprint": "7d1b393eb1e1fdb2c6658be465595ed13e976106549f955b227b386aa39a43f8"
+    }
+  },
+  "want": {
+    "match": true,
+    "state": {
+      "task": {
+        "repo": "keelworks",
+        "id": "keelworks#1",
+        "created": true,
+        "occurrences": 1,
+        "worker": "keelworks",
+        "code": "E_PARSE",
+        "fingerprint": "7d1b393eb1e1fdb2c6658be465595ed13e976106549f955b227b386aa39a43f8"
+      }
+    },
+    "effects": {
+      "alerts": [
+        {
+          "source": "bellbuoy",
+          "kind": "incident",
+          "lane": "normal",
+          "new": true,
+          "worker": "keelworks",
+          "code": "E_PARSE",
+          "fingerprint": "7d1b393eb1e1fdb2c6658be465595ed13e976106549f955b227b386aa39a43f8",
+          "occurrences": 1,
+          "task": "keelworks#1"
+        }
+      ]
+    }
+  }
+}
