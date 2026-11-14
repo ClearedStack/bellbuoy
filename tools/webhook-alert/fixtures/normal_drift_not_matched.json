@@ -1,0 +1,17 @@
+{
+  "about": "Drift outside the urgent lane is not matched by this sub-tool.",
+  "job": {
+    "id": "job-0209",
+    "lane": "normal",
+    "kind": "drift",
+    "payload": {
+      "ref": "rule-0007"
+    }
+  },
+  "state": {},
+  "want": {
+    "match": false,
+    "state": {},
+    "effects": {}
+  }
+}

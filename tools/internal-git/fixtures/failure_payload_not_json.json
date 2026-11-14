@@ -1,0 +1,22 @@
+{
+  "about": "A payload that is not a JSON object is broken data.",
+  "job": {
+    "id": "job-0012",
+    "lane": "normal",
+    "kind": "error",
+    "payload": [
+      "muster",
+      "E_PARSE"
+    ]
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_PARSE",
+      "reason": "job payload is not a JSON object"
+    },
+    "state": {},
+    "effects": {}
+  }
+}

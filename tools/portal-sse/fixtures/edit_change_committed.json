@@ -1,0 +1,43 @@
+{
+  "about": "internal-git has committed an approved CONFIG edit. The visitor's pill moves to Approved.",
+  "job": {
+    "id": "job-0312",
+    "lane": "normal",
+    "kind": "edit",
+    "payload": {
+      "edit": "ed-0002",
+      "class": "CONFIG",
+      "target": "platform/registry.json",
+      "approval": "cs-0002",
+      "content": "{}\n"
+    }
+  },
+  "state": {
+    "change": {
+      "repo": "clearedstack.com",
+      "branch": "edit/ed-0002",
+      "edit": "ed-0002",
+      "created": true
+    }
+  },
+  "want": {
+    "match": true,
+    "state": {
+      "change": {
+        "repo": "clearedstack.com",
+        "branch": "edit/ed-0002",
+        "edit": "ed-0002",
+        "created": true
+      }
+    },
+    "effects": {
+      "events": [
+        {
+          "topic": "pill",
+          "edit": "ed-0002",
+          "state": "Approved"
+        }
+      ]
+    }
+  }
+}

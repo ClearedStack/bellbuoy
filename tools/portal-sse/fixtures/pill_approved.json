@@ -1,0 +1,27 @@
+{
+  "about": "An edit has reached Approved. The pill event carries the edit reference and the state, and nothing else.",
+  "job": {
+    "id": "job-03-approved",
+    "lane": "normal",
+    "kind": "status",
+    "payload": {
+      "topic": "pill",
+      "edit": "ed-0001",
+      "state": "Approved"
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "state": {},
+    "effects": {
+      "events": [
+        {
+          "topic": "pill",
+          "edit": "ed-0001",
+          "state": "Approved"
+        }
+      ]
+    }
+  }
+}

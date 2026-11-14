@@ -1,0 +1,21 @@
+{
+  "about": "An edit that internal-git has not committed moves no pill. The matching rule says no.",
+  "job": {
+    "id": "job-0314",
+    "lane": "normal",
+    "kind": "edit",
+    "payload": {
+      "edit": "ed-0002",
+      "class": "CONFIG",
+      "target": "platform/registry.json",
+      "approval": "cs-0002",
+      "content": "{}\n"
+    }
+  },
+  "state": {},
+  "want": {
+    "match": false,
+    "state": {},
+    "effects": {}
+  }
+}

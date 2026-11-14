@@ -1,0 +1,23 @@
+{
+  "about": "The item-lifecycle stream has no rule yet, because its states are not written down in this repository. A status job for it is paused.",
+  "job": {
+    "id": "job-0308",
+    "lane": "normal",
+    "kind": "status",
+    "payload": {
+      "topic": "item-lifecycle",
+      "edit": "ed-0001",
+      "state": "Live"
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_NEEDS_SUBTOOL",
+      "reason": "no rule covers this stream"
+    },
+    "state": {},
+    "effects": {}
+  }
+}

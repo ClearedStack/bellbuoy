@@ -1,0 +1,24 @@
+# Bellbuoy's image is built straight from source with ko. There is no
+# Dockerfile.
+#
+#   KO_DOCKER_REPO=lazarette.clearedstack.svc.cluster.local:5000 \
+#     ko build --base-import-paths --platform=linux/arm64 ./cmd/bellbuoy
+#
+# gives lazarette.clearedstack.svc.cluster.local:5000/bellbuoy@sha256:...
+#
+# The upstream static base image is pinned by digest: no shell, no package
+# manager, and UID 65532 (nonroot) matching deploy/bellbuoy.yaml.
+defaultBaseImage: cgr.dev/chainguard/static:latest@sha256:17367e4d3ae2b46c3290858e483fac09be085c92b372360fe3bf6a6150848fde
+defaultPlatforms:
+  - linux/arm64
+
+builds:
+  - id: bellbuoy
+    main: ./cmd/bellbuoy
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s
+      - -w

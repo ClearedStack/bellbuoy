@@ -1,0 +1,39 @@
+{
+  "about": "Failures that differ only in numbers, addresses and names share a task. A different code or a different worker does not.",
+  "repo": "muster",
+  "failures": [
+    {"repeat": 3, "worker": "muster", "code": "E_TIMEOUT", "pattern": "dial tcp 10.0.0.7:5432: i/o timeout after 31s on node-3"},
+    {"repeat": 2, "worker": "muster", "code": "E_TIMEOUT", "pattern": "dial tcp 10.0.0.9:5432: i/o timeout after 12s on node-8"},
+    {"repeat": 4, "worker": "muster", "code": "E_PARSE", "pattern": "dial tcp 10.0.0.7:5432: i/o timeout after 31s on node-3"},
+    {"repeat": 1, "worker": "keelworks", "code": "E_TIMEOUT", "pattern": "dial tcp 10.0.0.7:5432: i/o timeout after 31s on node-3"}
+  ],
+  "want": [
+    {
+      "id": "muster#1",
+      "repo": "muster",
+      "key": "49ba3ba27195299b6d15591a9569d2ab5ff2c065c34fc2f90a83588b2224b445",
+      "title": "muster: E_TIMEOUT",
+      "body": "",
+      "occurrences": 5,
+      "open": true
+    },
+    {
+      "id": "muster#2",
+      "repo": "muster",
+      "key": "ab563ba552e2e0f08f8c98467aadc248fc29228f9b4c46a1482fff606f47c276",
+      "title": "muster: E_PARSE",
+      "body": "",
+      "occurrences": 4,
+      "open": true
+    },
+    {
+      "id": "muster#3",
+      "repo": "muster",
+      "key": "feb0060b1ba0e75a6e532d3f7acb69f7bb8c092d1c64915f758146e2c08d6634",
+      "title": "keelworks: E_TIMEOUT",
+      "body": "",
+      "occurrences": 1,
+      "open": true
+    }
+  ]
+}

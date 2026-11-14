@@ -1,0 +1,23 @@
+{
+  "about": "A state that carries markup is broken data. Nothing from it reaches the public stream.",
+  "job": {
+    "id": "job-0306",
+    "lane": "normal",
+    "kind": "status",
+    "payload": {
+      "topic": "pill",
+      "edit": "ed-0001",
+      "state": "<b>Live</b>"
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_PARSE",
+      "reason": "edit state is missing or malformed"
+    },
+    "state": {},
+    "effects": {}
+  }
+}

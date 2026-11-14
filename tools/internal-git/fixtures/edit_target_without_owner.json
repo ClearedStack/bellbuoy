@@ -1,0 +1,25 @@
+{
+  "about": "A target no repository is recorded as owning is paused instead of guessing a repository.",
+  "job": {
+    "id": "job-0028",
+    "lane": "normal",
+    "kind": "edit",
+    "payload": {
+      "edit": "ed-0009",
+      "class": "CONFIG",
+      "target": "elsewhere/file.json",
+      "approval": "cs-0009",
+      "content": "x"
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_NEEDS_SUBTOOL",
+      "reason": "no repository is recorded as owning this edit target"
+    },
+    "state": {},
+    "effects": {}
+  }
+}

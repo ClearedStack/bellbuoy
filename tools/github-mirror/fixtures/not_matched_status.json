@@ -1,0 +1,19 @@
+{
+  "about": "A status job writes to no repository, so there is nothing to mirror.",
+  "job": {
+    "id": "job-0115",
+    "lane": "normal",
+    "kind": "status",
+    "payload": {
+      "topic": "pill",
+      "edit": "ed-0001",
+      "state": "Building"
+    }
+  },
+  "state": {},
+  "want": {
+    "match": false,
+    "state": {},
+    "effects": {}
+  }
+}

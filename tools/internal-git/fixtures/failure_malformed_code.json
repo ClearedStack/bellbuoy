@@ -1,0 +1,23 @@
+{
+  "about": "An error code that is not shaped like a code is broken data.",
+  "job": {
+    "id": "job-0009",
+    "lane": "normal",
+    "kind": "error",
+    "payload": {
+      "worker": "muster",
+      "code": "timeout!",
+      "pattern": "x"
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_PARSE",
+      "reason": "error code is missing or malformed"
+    },
+    "state": {},
+    "effects": {}
+  }
+}

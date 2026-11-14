@@ -1,0 +1,25 @@
+{
+  "about": "A target that tries to climb out of the repository is broken data.",
+  "job": {
+    "id": "job-0027",
+    "lane": "normal",
+    "kind": "edit",
+    "payload": {
+      "edit": "ed-0008",
+      "class": "CONFIG",
+      "target": "platform/../../secrets.json",
+      "approval": "cs-0008",
+      "content": "x"
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_PARSE",
+      "reason": "edit target is missing or malformed"
+    },
+    "state": {},
+    "effects": {}
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "about": "A mirror job that does not say what changed is broken data.",
+  "job": {
+    "id": "job-0110",
+    "lane": "normal",
+    "kind": "mirror",
+    "payload": {
+      "repo": "keelworks",
+      "content": []
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_PARSE",
+      "reason": "mirror job does not say what content changed"
+    },
+    "state": {},
+    "effects": {}
+  }
+}

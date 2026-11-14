@@ -1,0 +1,4 @@
+/bellbuoy
+/dist/
+*.test
+*.out

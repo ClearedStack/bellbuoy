@@ -1,0 +1,82 @@
+# Default deny for cs-workers, plus the exact outbound paths Bellbuoy needs.
+# Every pod in cs-workers is covered by default-deny unless an explicit policy
+# opens what that worker needs.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+  namespace: cs-workers
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+# Bellbuoy listens on no port and accepts no inbound connections.
+# Outbound connections are restricted to:
+#   1. Cluster DNS in kube-system (UDP/TCP 53).
+#   2. Muster in clearedstack on TCP 8080 (contract v1 worker calls).
+#   3. Plainforge in clearedstack on TCP 8080 (for internal-git and github-mirror
+#      once Plainforge exposes its task and branch interface).
+#   4. Public HTTPS on TCP 443 for webhook-alert, excluding cluster-internal,
+#      loopback, link-local, and CGNAT address ranges so Logbook, the Kubernetes
+#      API, and internal services remain unreachable.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: bellbuoy-egress
+  namespace: cs-workers
+  labels:
+    app.kubernetes.io/name: bellbuoy
+    app.kubernetes.io/part-of: clearedstack
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: bellbuoy
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress: []
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: clearedstack
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: muster
+      ports:
+        - protocol: TCP
+          port: 8080
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: clearedstack
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: plainforge
+      ports:
+        - protocol: TCP
+          port: 8080
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 10.0.0.0/8
+              - 172.16.0.0/12
+              - 192.168.0.0/16
+              - 100.64.0.0/10
+              - 127.0.0.0/8
+              - 169.254.0.0/16
+      ports:
+        - protocol: TCP
+          port: 443

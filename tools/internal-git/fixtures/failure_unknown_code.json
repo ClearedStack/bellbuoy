@@ -1,0 +1,23 @@
+{
+  "about": "An error code that is well formed and is not one of the three public codes is valid and unfamiliar. The job is paused and nothing is written.",
+  "job": {
+    "id": "job-0008",
+    "lane": "normal",
+    "kind": "error",
+    "payload": {
+      "worker": "muster",
+      "code": "E_DISK_FULL",
+      "pattern": "no space"
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_NEEDS_SUBTOOL",
+      "reason": "error code is not one of the three public codes"
+    },
+    "state": {},
+    "effects": {}
+  }
+}

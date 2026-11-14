@@ -1,0 +1,24 @@
+{
+  "about": "A payload with a field no rule covers is valid and unfamiliar.",
+  "job": {
+    "id": "job-0013",
+    "lane": "normal",
+    "kind": "error",
+    "payload": {
+      "worker": "muster",
+      "code": "E_PARSE",
+      "pattern": "x",
+      "stack": "frame one"
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_NEEDS_SUBTOOL",
+      "reason": "job payload has a field no rule covers"
+    },
+    "state": {},
+    "effects": {}
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "about": "An edit class no rule covers is paused. Nothing is written.",
+  "job": {
+    "id": "job-0024",
+    "lane": "normal",
+    "kind": "edit",
+    "payload": {
+      "edit": "ed-0005",
+      "class": "LAYOUT",
+      "target": "platform/registry.json",
+      "approval": "cs-0005",
+      "content": "x"
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_NEEDS_SUBTOOL",
+      "reason": "no rule covers this class of edit"
+    },
+    "state": {},
+    "effects": {}
+  }
+}

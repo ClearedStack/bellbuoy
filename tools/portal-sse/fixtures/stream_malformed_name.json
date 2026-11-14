@@ -1,0 +1,23 @@
+{
+  "about": "A stream name that is not shaped like one is broken data.",
+  "job": {
+    "id": "job-0310",
+    "lane": "normal",
+    "kind": "status",
+    "payload": {
+      "topic": "pub.*",
+      "edit": "ed-0001",
+      "state": "Live"
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_PARSE",
+      "reason": "stream name is missing or malformed"
+    },
+    "state": {},
+    "effects": {}
+  }
+}

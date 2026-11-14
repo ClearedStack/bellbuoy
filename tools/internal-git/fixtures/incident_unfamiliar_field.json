@@ -1,0 +1,30 @@
+{
+  "about": "An incident that carries a field no rule covers has no rule. The field is not read.",
+  "job": {
+    "id": "PA-0042",
+    "lane": "normal",
+    "kind": "incident",
+    "lease": "incident:PA-0042.1",
+    "state": "observed",
+    "attempt": 1,
+    "payload": {
+      "incident": {
+        "id": "PA-0042",
+        "worker": "keelworks",
+        "code": "E_PARSE",
+        "state": "observed",
+        "message": "failed on node-3 at 10.0.0.7"
+      }
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_NEEDS_SUBTOOL",
+      "reason": "job payload has a field no rule covers"
+    },
+    "state": {},
+    "effects": {}
+  }
+}

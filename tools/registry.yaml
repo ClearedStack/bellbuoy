@@ -1,0 +1,32 @@
+# The sub-tools, in the order the router tries them.
+#
+# Each one lives in its own folder and has three parts: a matching rule, the
+# logic, and fixtures (saved inputs with the exact output expected).
+#
+# internal-git comes first because the others decide what to do from the task
+# or change it records.
+tools:
+  - name: internal-git
+    folder: tools/internal-git
+    rule: match.go
+    logic: logic.go
+    fixtures: fixtures
+    target: Cluster-private Plainforge repositories
+  - name: github-mirror
+    folder: tools/github-mirror
+    rule: match.go
+    logic: logic.go
+    fixtures: fixtures
+    target: Public mirror, source and tasks only
+  - name: webhook-alert
+    folder: tools/webhook-alert
+    rule: match.go
+    logic: logic.go
+    fixtures: fixtures
+    target: Configured external webhook
+  - name: portal-sse
+    folder: tools/portal-sse
+    rule: match.go
+    logic: logic.go
+    fixtures: fixtures
+    target: Live update stream, through Muster

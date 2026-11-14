@@ -1,0 +1,27 @@
+{
+  "about": "Regulatory drift in the urgent lane alerts. The alert carries the opaque reference and no text.",
+  "job": {
+    "id": "job-0208",
+    "lane": "urgent",
+    "kind": "drift",
+    "payload": {
+      "ref": "rule-0007"
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "state": {},
+    "effects": {
+      "alerts": [
+        {
+          "source": "bellbuoy",
+          "kind": "drift",
+          "lane": "urgent",
+          "new": true,
+          "ref": "rule-0007"
+        }
+      ]
+    }
+  }
+}

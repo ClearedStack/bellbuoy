@@ -1,0 +1,25 @@
+{
+  "about": "An edit class that is not shaped like a class is broken data.",
+  "job": {
+    "id": "job-0025",
+    "lane": "normal",
+    "kind": "edit",
+    "payload": {
+      "edit": "ed-0006",
+      "class": "config; drop",
+      "target": "platform/registry.json",
+      "approval": "cs-0006",
+      "content": "x"
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_PARSE",
+      "reason": "edit class is missing or malformed"
+    },
+    "state": {},
+    "effects": {}
+  }
+}

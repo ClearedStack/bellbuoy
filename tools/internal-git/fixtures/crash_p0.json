@@ -1,0 +1,43 @@
+{
+  "about": "A crash is a failure like any other for this sub-tool. Its attention tier is recorded for the sub-tools that follow.",
+  "job": {
+    "id": "job-0005",
+    "lane": "urgent",
+    "kind": "crash",
+    "payload": {
+      "worker": "shipkeeper",
+      "code": "E_TIMEOUT",
+      "pattern": "process stopped",
+      "tier": "P0"
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "state": {
+      "task": {
+        "repo": "shipkeeper",
+        "id": "shipkeeper#1",
+        "created": true,
+        "occurrences": 1,
+        "worker": "shipkeeper",
+        "code": "E_TIMEOUT",
+        "fingerprint": "e6a109583200812342df943cc049e86dbec8ad144a6acf129fd9e92e2852ef6b",
+        "tier": "P0"
+      }
+    },
+    "effects": {
+      "tasks": [
+        {
+          "id": "shipkeeper#1",
+          "repo": "shipkeeper",
+          "key": "e6a109583200812342df943cc049e86dbec8ad144a6acf129fd9e92e2852ef6b",
+          "title": "shipkeeper: E_TIMEOUT [e6a109583200]",
+          "body": "Worker: shipkeeper\nError code: E_TIMEOUT\nFingerprint: e6a109583200812342df943cc049e86dbec8ad144a6acf129fd9e92e2852ef6b\nFailure pattern: process stopped\n\nOpened by bellbuoy. Repeats of this failure are counted on this task.",
+          "occurrences": 1,
+          "open": true
+        }
+      ]
+    }
+  }
+}

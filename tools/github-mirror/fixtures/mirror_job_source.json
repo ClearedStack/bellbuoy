@@ -1,0 +1,32 @@
+{
+  "about": "A repository changed. Its mirror is asked to pick up source and tasks. The content list is put in order and repeats are dropped.",
+  "job": {
+    "id": "job-0104",
+    "lane": "backfill",
+    "kind": "mirror",
+    "payload": {
+      "repo": "keelworks",
+      "content": [
+        "task",
+        "source",
+        "task"
+      ]
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "state": {},
+    "effects": {
+      "mirrors": [
+        {
+          "repo": "keelworks",
+          "content": [
+            "source",
+            "task"
+          ]
+        }
+      ]
+    }
+  }
+}

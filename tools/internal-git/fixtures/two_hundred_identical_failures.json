@@ -1,0 +1,42 @@
+{
+  "about": "Two hundred identical failures become one task with a count of two hundred.",
+  "job": {
+    "id": "job-0001",
+    "lane": "normal",
+    "kind": "error",
+    "payload": {
+      "worker": "muster",
+      "code": "E_TIMEOUT",
+      "pattern": "lease store did not answer"
+    }
+  },
+  "repeat": 200,
+  "state": {},
+  "want": {
+    "match": true,
+    "state": {
+      "task": {
+        "repo": "muster",
+        "id": "muster#1",
+        "created": false,
+        "occurrences": 200,
+        "worker": "muster",
+        "code": "E_TIMEOUT",
+        "fingerprint": "4f6eae62d7b16953974b79eb7422c151360403d552a414d29ed6cb4a4dcfef38"
+      }
+    },
+    "effects": {
+      "tasks": [
+        {
+          "id": "muster#1",
+          "repo": "muster",
+          "key": "4f6eae62d7b16953974b79eb7422c151360403d552a414d29ed6cb4a4dcfef38",
+          "title": "muster: E_TIMEOUT [4f6eae62d7b1]",
+          "body": "Worker: muster\nError code: E_TIMEOUT\nFingerprint: 4f6eae62d7b16953974b79eb7422c151360403d552a414d29ed6cb4a4dcfef38\nFailure pattern: lease store did not answer\n\nOpened by bellbuoy. Repeats of this failure are counted on this task.",
+          "occurrences": 200,
+          "open": true
+        }
+      ]
+    }
+  }
+}

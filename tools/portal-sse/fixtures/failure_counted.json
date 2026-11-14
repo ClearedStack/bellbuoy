@@ -1,0 +1,49 @@
+{
+  "about": "A failure has been counted on its task. The operations stream gets the worker, the code, the fingerprint and the count. The failure message itself, with its address and node name, appears nowhere in the event.",
+  "job": {
+    "id": "job-0315",
+    "lane": "normal",
+    "kind": "error",
+    "payload": {
+      "worker": "muster",
+      "code": "E_TIMEOUT",
+      "pattern": "dial tcp 10.0.0.9:5432: i/o timeout after 12s on node-8"
+    }
+  },
+  "state": {
+    "task": {
+      "repo": "muster",
+      "id": "muster#1",
+      "created": false,
+      "occurrences": 8,
+      "worker": "muster",
+      "code": "E_TIMEOUT",
+      "fingerprint": "49ba3ba27195299b6d15591a9569d2ab5ff2c065c34fc2f90a83588b2224b445"
+    }
+  },
+  "want": {
+    "match": true,
+    "state": {
+      "task": {
+        "repo": "muster",
+        "id": "muster#1",
+        "created": false,
+        "occurrences": 8,
+        "worker": "muster",
+        "code": "E_TIMEOUT",
+        "fingerprint": "49ba3ba27195299b6d15591a9569d2ab5ff2c065c34fc2f90a83588b2224b445"
+      }
+    },
+    "effects": {
+      "events": [
+        {
+          "topic": "operations",
+          "worker": "muster",
+          "code": "E_TIMEOUT",
+          "fingerprint": "49ba3ba27195299b6d15591a9569d2ab5ff2c065c34fc2f90a83588b2224b445",
+          "occurrences": 8
+        }
+      ]
+    }
+  }
+}

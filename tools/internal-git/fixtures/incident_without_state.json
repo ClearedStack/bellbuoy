@@ -1,0 +1,28 @@
+{
+  "about": "An incident that does not say what state the item was in is broken data.",
+  "job": {
+    "id": "PA-0042",
+    "lane": "normal",
+    "kind": "incident",
+    "lease": "incident:PA-0042.1",
+    "state": "observed",
+    "attempt": 1,
+    "payload": {
+      "incident": {
+        "id": "PA-0042",
+        "worker": "keelworks",
+        "code": "E_PARSE"
+      }
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_PARSE",
+      "reason": "item state is missing or malformed"
+    },
+    "state": {},
+    "effects": {}
+  }
+}

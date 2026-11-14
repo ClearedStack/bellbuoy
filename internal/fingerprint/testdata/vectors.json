@@ -1,0 +1,51 @@
+[
+  {
+    "worker": "muster",
+    "code": "E_TIMEOUT",
+    "pattern": "dial tcp 10.0.0.7:5432: i/o timeout after 31s on node-3",
+    "sanitized": "dial tcp # timeout after # on #",
+    "fingerprint": "49ba3ba27195299b6d15591a9569d2ab5ff2c065c34fc2f90a83588b2224b445"
+  },
+  {
+    "worker": "muster",
+    "code": "E_TIMEOUT",
+    "pattern": "dial tcp 10.0.0.9:5432: i/o timeout after 12s on node-8",
+    "sanitized": "dial tcp # timeout after # on #",
+    "fingerprint": "49ba3ba27195299b6d15591a9569d2ab5ff2c065c34fc2f90a83588b2224b445"
+  },
+  {
+    "worker": "muster",
+    "code": "E_PARSE",
+    "pattern": "dial tcp 10.0.0.7:5432: i/o timeout after 31s on node-3",
+    "sanitized": "dial tcp # timeout after # on #",
+    "fingerprint": "ab563ba552e2e0f08f8c98467aadc248fc29228f9b4c46a1482fff606f47c276"
+  },
+  {
+    "worker": "keelworks",
+    "code": "E_TIMEOUT",
+    "pattern": "dial tcp 10.0.0.7:5432: i/o timeout after 31s on node-3",
+    "sanitized": "dial tcp # timeout after # on #",
+    "fingerprint": "feb0060b1ba0e75a6e532d3f7acb69f7bb8c092d1c64915f758146e2c08d6634"
+  },
+  {
+    "worker": "bellbuoy",
+    "code": "E_NEEDS_SUBTOOL",
+    "pattern": "Unknown edit class",
+    "sanitized": "unknown edit class",
+    "fingerprint": "1221297a370c9cf8d05aaf8fb87148eebff851384b64063ef76ca83e3246aaa1"
+  },
+  {
+    "worker": "bellbuoy",
+    "code": "E_NEEDS_SUBTOOL",
+    "pattern": "",
+    "sanitized": "",
+    "fingerprint": "53468572820e2b4ef732cc5b7189a208655327bf4bcb6f9e998e497072f7bd3c"
+  },
+  {
+    "worker": "shipkeeper",
+    "code": "E_PARSE",
+    "pattern": "  Unexpected   token '}' at line 14, column 2 (file=/srv/data/rates.json)  ",
+    "sanitized": "unexpected token at line # column #",
+    "fingerprint": "8c119a93b6650fcb9b58b6da4826c22b8ef9e7ec04225aa320bb2d261ec3ca26"
+  }
+]

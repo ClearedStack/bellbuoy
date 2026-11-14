@@ -1,0 +1,54 @@
+{
+  "about": "internal-git has filed an incident's task in a repository with a public mirror. The mirror is asked to pick up tasks.",
+  "job": {
+    "id": "PA-0042",
+    "lane": "normal",
+    "kind": "incident",
+    "lease": "incident:PA-0042.1",
+    "state": "observed",
+    "attempt": 1,
+    "payload": {
+      "incident": {
+        "id": "PA-0042",
+        "worker": "keelworks",
+        "code": "E_PARSE",
+        "state": "observed"
+      }
+    }
+  },
+  "state": {
+    "task": {
+      "repo": "keelworks",
+      "id": "keelworks#1",
+      "created": true,
+      "occurrences": 1,
+      "worker": "keelworks",
+      "code": "E_PARSE",
+      "fingerprint": "7d1b393eb1e1fdb2c6658be465595ed13e976106549f955b227b386aa39a43f8"
+    }
+  },
+  "want": {
+    "match": true,
+    "state": {
+      "task": {
+        "repo": "keelworks",
+        "id": "keelworks#1",
+        "created": true,
+        "occurrences": 1,
+        "worker": "keelworks",
+        "code": "E_PARSE",
+        "fingerprint": "7d1b393eb1e1fdb2c6658be465595ed13e976106549f955b227b386aa39a43f8"
+      }
+    },
+    "effects": {
+      "mirrors": [
+        {
+          "repo": "keelworks",
+          "content": [
+            "task"
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "about": "An edit reference that is really a host name and port is broken data.",
+  "job": {
+    "id": "job-0307",
+    "lane": "normal",
+    "kind": "status",
+    "payload": {
+      "topic": "pill",
+      "edit": "node-3.internal.example:8080",
+      "state": "Live"
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_PARSE",
+      "reason": "edit reference is missing or malformed"
+    },
+    "state": {},
+    "effects": {}
+  }
+}

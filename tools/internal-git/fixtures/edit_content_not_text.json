@@ -1,0 +1,25 @@
+{
+  "about": "Content with control characters in it is not plain text and is refused.",
+  "job": {
+    "id": "job-0030",
+    "lane": "normal",
+    "kind": "edit",
+    "payload": {
+      "edit": "ed-0011",
+      "class": "DATA",
+      "target": "platform/registry.json",
+      "approval": "cs-0011",
+      "content": "a\u0000b"
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_PARSE",
+      "reason": "edit content is too large or is not plain text"
+    },
+    "state": {},
+    "effects": {}
+  }
+}

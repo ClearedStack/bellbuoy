@@ -1,0 +1,29 @@
+{
+  "about": "Muster raises incidents for E_PARSE and E_NEEDS_SUBTOOL only. One that says E_TIMEOUT is valid and unfamiliar, and has no rule.",
+  "job": {
+    "id": "PA-0042",
+    "lane": "normal",
+    "kind": "incident",
+    "lease": "incident:PA-0042.1",
+    "state": "observed",
+    "attempt": 1,
+    "payload": {
+      "incident": {
+        "id": "PA-0042",
+        "worker": "keelworks",
+        "code": "E_TIMEOUT",
+        "state": "observed"
+      }
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_NEEDS_SUBTOOL",
+      "reason": "no rule covers an incident with this code"
+    },
+    "state": {},
+    "effects": {}
+  }
+}

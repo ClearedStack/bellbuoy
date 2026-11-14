@@ -1,0 +1,25 @@
+{
+  "about": "The mirror target does not answer in time. The error is E_TIMEOUT, so the request stays staged and is tried again.",
+  "job": {
+    "id": "job-0113",
+    "lane": "normal",
+    "kind": "mirror",
+    "payload": {
+      "repo": "keelworks",
+      "content": [
+        "source"
+      ]
+    }
+  },
+  "fault": "E_TIMEOUT",
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_TIMEOUT",
+      "reason": "the outside call took too long"
+    },
+    "state": {},
+    "effects": {}
+  }
+}

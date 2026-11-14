@@ -1,0 +1,18 @@
+{
+  "about": "Two hundred identical failures from one worker become one task with a count of two hundred.",
+  "repo": "muster",
+  "failures": [
+    {"repeat": 200, "worker": "muster", "code": "E_TIMEOUT", "pattern": "lease store did not answer"}
+  ],
+  "want": [
+    {
+      "id": "muster#1",
+      "repo": "muster",
+      "key": "4f6eae62d7b16953974b79eb7422c151360403d552a414d29ed6cb4a4dcfef38",
+      "title": "muster: E_TIMEOUT",
+      "body": "",
+      "occurrences": 200,
+      "open": true
+    }
+  ]
+}

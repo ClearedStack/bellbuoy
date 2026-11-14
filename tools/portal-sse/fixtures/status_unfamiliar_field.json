@@ -1,0 +1,24 @@
+{
+  "about": "A status job that carries a free-text note has a field no rule covers. It is paused and the note goes nowhere.",
+  "job": {
+    "id": "job-0311",
+    "lane": "normal",
+    "kind": "status",
+    "payload": {
+      "topic": "pill",
+      "edit": "ed-0001",
+      "state": "Building",
+      "note": "running on node-3"
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_NEEDS_SUBTOOL",
+      "reason": "job payload has a field no rule covers"
+    },
+    "state": {},
+    "effects": {}
+  }
+}

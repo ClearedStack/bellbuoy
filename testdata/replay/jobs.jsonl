@@ -1,0 +1,19 @@
+{"id":"job-0001","lane":"backfill","kind":"mirror","payload":{"repo":"keelworks","content":["source"]}}
+{"id":"job-0002","lane":"normal","kind":"error","payload":{"worker":"muster","code":"E_TIMEOUT","pattern":"dial tcp 10.0.0.7:5432: i/o timeout after 31s on node-3","item":"PA-0042"}}
+{"id":"job-0003","lane":"normal","kind":"error","payload":{"worker":"muster","code":"E_TIMEOUT","pattern":"dial tcp 10.0.0.9:5432: i/o timeout after 12s on node-8"}}
+{"id":"job-0004","lane":"normal","kind":"status","payload":{"topic":"pill","edit":"ed-0001","state":"Proposed"}}
+{"id":"job-0005","lane":"normal","kind":"edit","payload":{"edit":"ed-0001","class":"CONFIG","target":"platform/registry.json","approval":"cs-0001","content":"{\n  \"example\": true\n}\n"}}
+{"id":"job-0006","lane":"normal","kind":"status","payload":{"topic":"pill","edit":"ed-0001","state":"Building"}}
+{"id":"job-0007","lane":"normal","kind":"status","payload":{"topic":"pill","edit":"ed-0001","state":"Live"}}
+{"id":"job-0008","lane":"normal","kind":"edit","payload":{"edit":"ed-0002","class":"ISSUE","target":"platform/workers/bellbuoy/notes.json","approval":"cs-0002","summary":"The example row for stage ten shows an old name."}}
+{"id":"job-0009","lane":"normal","kind":"edit","payload":{"edit":"ed-0003","class":"LAYOUT","target":"platform/registry.json","approval":"cs-0003","content":"x"}}
+{"id":"job-0010","lane":"normal","kind":"needs_subtool","payload":{"worker":"keelworks","pattern":"no rule covers this build target","item":"PA-0107"}}
+{"id":"job-0011","lane":"normal","kind":"error","payload":"muster E_TIMEOUT dial tcp 10.0.0.7:5432"}
+{"id":"job-0012","lane":"normal","kind":"census","payload":{"count":1}}
+{"id":"job-0013","lane":"urgent","kind":"crash","payload":{"worker":"shipkeeper","code":"E_TIMEOUT","pattern":"process stopped","tier":"P0"}}
+{"id":"job-0014","lane":"urgent","kind":"drift","payload":{"ref":"rule-0007"}}
+{"id":"job-0015","lane":"normal","kind":"drift","payload":{"ref":"rule-0008"}}
+{"id":"job-0016","lane":"backfill","kind":"mirror","payload":{"repo":"keelworks","content":["source","image"]}}
+{"id":"job-0017","lane":"urgent","kind":"crash","payload":{"worker":"shipkeeper","code":"E_TIMEOUT","pattern":"process stopped","tier":"P0"}}
+{"id":"PA-0042","lane":"normal","kind":"incident","state":"observed","payload":{"incident":{"id":"PA-0042","worker":"keelworks","code":"E_PARSE","state":"observed"}}}
+{"id":"PA-0043","lane":"normal","kind":"incident","state":"observed","payload":{"incident":{"id":"PA-0043","worker":"keelworks","code":"E_PARSE","state":"observed"}}}

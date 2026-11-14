@@ -1,0 +1,29 @@
+{
+  "about": "An item reference with a leading zero in a five-digit number is not one Muster gives out. It is broken data.",
+  "job": {
+    "id": "PA-01234",
+    "lane": "normal",
+    "kind": "incident",
+    "lease": "incident:PA-01234.1",
+    "state": "observed",
+    "attempt": 1,
+    "payload": {
+      "incident": {
+        "id": "PA-01234",
+        "worker": "keelworks",
+        "code": "E_PARSE",
+        "state": "observed"
+      }
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_PARSE",
+      "reason": "item reference is malformed or does not match the step"
+    },
+    "state": {},
+    "effects": {}
+  }
+}
