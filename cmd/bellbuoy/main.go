@@ -51,15 +51,18 @@ const (
 	maxLine = work.MaxPayload + 4096
 )
 
-const usage = `bellbuoy serve -muster ADDRESS -owners FILE [-spool DIR] [-ledger FILE]
-               [-token-file FILE] [-idle TIME] [-heartbeat TIME]
+const usage = `bellbuoy serve -muster ADDRESS -owners FILE [-plainforge ADDRESS]
+               [-spool DIR] [-ledger FILE] [-token-file FILE]
+               [-idle TIME] [-heartbeat TIME]
     Lease steps from the Muster at ADDRESS and work on them until told to
     stop. Each result is written to the spool before Muster is told, and
     removed only when Muster has acknowledged it.
 
-    Tasks are kept in the ledger file, because Plainforge has no interface
-    for tasks yet. The default ledger is tasks.ledger in the spool, and the
-    default spool is ` + spool.DefaultDir + `.
+    When -plainforge is set, proposed changes are pushed to refs/heads/edit/*
+    and tasks are kept on refs/heads/bellbuoy/tasks in the owning Plainforge
+    repository over Git smart HTTP. Otherwise tasks and proposed changes are
+    kept in the local ledger file (default: tasks.ledger in the spool, where
+    the default spool is ` + spool.DefaultDir + `).
 
     If ` + WebhookEnv + ` is set, owner alerts are posted there. If it is
     not, no alerts are sent.
@@ -193,17 +196,19 @@ func replay(ctx context.Context, args []string, getenv func(string) string, stdo
 // serve leases steps from a real Muster until ctx is done.
 //
 // Only the sub-tools that have somewhere real to deliver to are run.
-// internal-git always runs, against the task ledger. webhook-alert runs when
-// a webhook is configured. github-mirror and portal-sse do not run: the
-// ledger has no mirror, and Muster's contract v1 has no call that takes a
-// live event.
+// internal-git always runs, against Plainforge over Git smart HTTP when
+// -plainforge is set or against the local task ledger otherwise. webhook-alert
+// runs when a webhook is configured. github-mirror and portal-sse do not run:
+// Plainforge mirrors refs/heads/main and tags by itself, and Muster's contract
+// v1 has no worker call that takes a live event.
 func serve(ctx context.Context, args []string, getenv func(string) string, stderr io.Writer) int {
 	fs := flag.NewFlagSet("serve", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	address := fs.String("muster", "", "address of Muster, such as http://host:port")
 	ownersPath := fs.String("owners", "", "ownership_map.json")
+	plainforgeAddr := fs.String("plainforge", "", "address of Plainforge over Git smart HTTP")
 	spoolDir := fs.String("spool", spool.DefaultDir, "spool directory")
-	ledgerPath := fs.String("ledger", "", "task ledger file (default: tasks.ledger in the spool)")
+	ledgerPath := fs.String("ledger", "", "task ledger file when -plainforge is not set")
 	tokenFile := fs.String("token-file", muster.DefaultTokenFile, "ServiceAccount token file")
 	idle := fs.Duration("idle", worker.DefaultIdle, "how long to wait when Muster has nothing to lease")
 	heartbeat := fs.Duration("heartbeat", worker.DefaultHeartbeat, "how often a held lease is kept alive")
@@ -213,6 +218,9 @@ func serve(ctx context.Context, args []string, getenv func(string) string, stder
 	if *address == "" || *ownersPath == "" || fs.NArg() != 0 || *idle <= 0 || *heartbeat <= 0 {
 		fmt.Fprint(stderr, usage)
 		return 2
+	}
+	if *plainforgeAddr != "" && *ledgerPath != "" {
+		return fail(stderr, codes.Broken("plainforge address and task ledger cannot both be set"))
 	}
 
 	queue, err := muster.NewClient(*address, *tokenFile, 0)
@@ -227,12 +235,20 @@ func serve(ctx context.Context, args []string, getenv func(string) string, stder
 	if err != nil {
 		return fail(stderr, err)
 	}
-	if *ledgerPath == "" {
-		*ledgerPath = filepath.Join(*spoolDir, "tasks.ledger")
-	}
-	forge, err := plainforge.OpenLedger(*ledgerPath)
-	if err != nil {
-		return fail(stderr, err)
+	var forge plainforge.Forge
+	if *plainforgeAddr != "" {
+		forge, err = plainforge.NewClient(*plainforgeAddr, 0)
+		if err != nil {
+			return fail(stderr, err)
+		}
+	} else {
+		if *ledgerPath == "" {
+			*ledgerPath = filepath.Join(*spoolDir, "tasks.ledger")
+		}
+		forge, err = plainforge.OpenLedger(*ledgerPath)
+		if err != nil {
+			return fail(stderr, err)
+		}
 	}
 
 	deps := tools.Deps{Forge: forge, Owners: owners}

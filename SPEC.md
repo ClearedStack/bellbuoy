@@ -138,13 +138,14 @@ Made while building Bellbuoy, each with its reason. Nothing above was removed.
 | Said that Bellbuoy sanitizes its own output. | One sentence said Bellbuoy emits only sanitized output and the next gave the stripping to Shipkeeper. Both now hold: Bellbuoy does not depend on the second. |
 | Said that one job is worked on at a time, and that the spool holds at most 256. | Needed for the same input to give the same output, and for the 30 MiB budget to hold when something outside is down. |
 | Said that Bellbuoy's own failures do not loop. | Stage 10 handles every worker's failures, its own included. The page did not say why that ends. |
+| Added Git smart HTTP delivery to Plainforge (`refs/heads/edit/*` and `refs/heads/bellbuoy/tasks`). | Plainforge serves multi-repository Git smart HTTP and mirrors `refs/heads/main` and tags automatically while exposing no custom HTTP task API. Storing tasks in `tasks.json` on `refs/heads/bellbuoy/tasks` keeps tasks durable across pod rescheduling and private to the cluster. |
 
 Still open, and not decided here:
 
 - How Bellbuoy says "no rule" for a step that is not an item's own. Muster refuses `needs_subtool` for incidents and proposals, so such a step is offered again every lease length until a rule exists. A call or a state for this would stop the repeats.
-- Where a task or proposed branch goes in Plainforge. Plainforge currently serves single-repository Git smart HTTP and does not yet expose multi-repository task, branch-proposal or mirror endpoints, so in `serve` Bellbuoy records tasks and proposed changes durably in `tasks.ledger` in `/var/spool/cs`. `github-mirror` waits on that Plainforge interface.
+- Whether Plainforge will later expose a dedicated HTTP task and GitHub-issue-mirror contract. Until then, `-plainforge` stores tasks on `refs/heads/bellbuoy/tasks` over Git smart HTTP (with `tasks.ledger` kept as a local fallback when `-plainforge` is omitted), and Plainforge mirrors `refs/heads/main` and tags by itself.
 - How `operations` live events reach Conn. Proposal `building` and `live` events are emitted by Muster directly from `complete` and `/v1/health`, while Muster's contract v1 has no worker call for `operations` events.
 - The name of the Kubernetes priority class. This page says "Standard"; the registry has no identifier for it.
-- The names of settings. The build uses one, `BELLBUOY_WEBHOOK_URL`, which is not in the registry.
+- The names of settings. The build uses one environment variable, `BELLBUOY_WEBHOOK_URL`, which is not in the registry.
 - Whether an alert should be signed. Nothing here asks for it, so it is not.
 - An occurrence can be counted twice if Bellbuoy is stopped after Plainforge counts it and before the job is staged or answered. Closing that needs Plainforge to accept a key per occurrence.
