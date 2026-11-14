@@ -12,12 +12,13 @@ spec:
     - Ingress
     - Egress
 ---
-# Bellbuoy listens on no port and accepts no inbound connections.
+# Bellbuoy serves only kubelet health probes on TCP 8080; ingress: [] blocks all
+# pod-to-pod inbound connections.
 # Outbound connections are restricted to:
 #   1. Cluster DNS in kube-system (UDP/TCP 53).
 #   2. Muster in clearedstack on TCP 8080 (contract v1 worker calls).
-#   3. Plainforge in clearedstack on TCP 80 and 8080 (Git smart HTTP for
-#      proposal branches and cluster-private task branches).
+#   3. Plainforge in clearedstack on TCP 8080 and 80 (Forge HTTP Contract v1 for
+#      tasks, proposal branches, and mirror sync).
 #   4. Public HTTPS on TCP 443 for webhook-alert, excluding cluster-internal,
 #      loopback, link-local, and CGNAT address ranges so Logbook, the Kubernetes
 #      API, and internal services remain unreachable.

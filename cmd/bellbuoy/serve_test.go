@@ -5,11 +5,10 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"net"
 	"net/http"
-	"net/http/cgi"
 	"net/http/httptest"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -18,6 +17,7 @@ import (
 
 	"github.com/ClearedStack/bellbuoy/internal/muster/mustertest"
 	"github.com/ClearedStack/bellbuoy/internal/plainforge"
+	"github.com/ClearedStack/bellbuoy/internal/plainforge/plainforgetest"
 )
 
 // syncBuffer is a log that the worker writes and the test reads.
@@ -467,11 +467,17 @@ func TestServeRefusesToStartOnBadSettings(t *testing.T) {
 		{"plainforge and ledger", []string{"-muster", "http://muster.example.invalid", "-plainforge", "http://plainforge.example.invalid", "-ledger", badLedger, "-owners", ownersFile, "-spool", dir}, "", "bellbuoy: E_PARSE: plainforge address and task ledger cannot both be set\n"},
 		{"missing map", []string{"-muster", "http://muster.example.invalid", "-owners", filepath.Join(dir, "absent.json"), "-spool", dir}, "", "bellbuoy: E_PARSE: ownership map cannot be read\n"},
 		{"bad ledger", []string{"-muster", "http://muster.example.invalid", "-owners", ownersFile, "-spool", dir, "-ledger", badLedger}, "", "bellbuoy: E_PARSE: task ledger is not in the expected form\n"},
+		{"bad listen", []string{"-muster", "http://muster.example.invalid", "-owners", ownersFile, "-spool", dir, "-listen", ":notaport"}, "", "bellbuoy: E_PARSE: probe listen address is not usable\n"},
 		{"bad webhook", []string{"-muster", "http://muster.example.invalid", "-owners", ownersFile, "-spool", dir}, "ftp://example.invalid/made-up", "bellbuoy: E_PARSE: webhook address is not usable\n"},
 	}
 	for _, c := range cases {
 		var out, errs bytes.Buffer
-		getenv := func(string) string { return c.env }
+		getenv := func(key string) string {
+			if key == WebhookEnv {
+				return c.env
+			}
+			return ""
+		}
 		code := run(context.Background(), append([]string{"serve"}, c.args...), getenv, &out, &errs)
 		if code != 1 || errs.String() != c.want {
 			t.Errorf("%s: code=%d stderr=%q", c.name, code, errs.String())
@@ -479,67 +485,22 @@ func TestServeRefusesToStartOnBadSettings(t *testing.T) {
 	}
 }
 
-// TestServeAgainstPlainforgeSmartHTTP drives bellbuoy serve end to end against
-// mustertest.Fake and a real Git smart HTTP server (git-http-backend),
-// including pod rescheduling onto a fresh empty spool directory.
-func TestServeAgainstPlainforgeSmartHTTP(t *testing.T) {
-	gitBin, err := execLookPath("git")
-	if err != nil {
-		t.Skip("git binary not installed")
-	}
-	execPathOut, err := execRun(t, "", gitBin, "--exec-path")
-	if err != nil {
-		t.Fatalf("git --exec-path: %v", err)
-	}
-	backend := filepath.Join(strings.TrimSpace(execPathOut), "git-http-backend")
-	if _, err := os.Stat(backend); err != nil {
-		t.Skipf("git-http-backend not installed at %s", backend)
-	}
-
-	gitRoot := t.TempDir()
-	for _, repo := range []string{"clearedstack.com", "sextant", "bellbuoy"} {
-		bare := filepath.Join(gitRoot, repo+".git")
-		if _, err := execRun(t, gitRoot, gitBin, "init", "--bare", "--initial-branch=main", bare); err != nil {
-			t.Fatal(err)
-		}
-		if _, err := execRun(t, bare, gitBin, "config", "http.receivepack", "true"); err != nil {
-			t.Fatal(err)
-		}
-	}
-	seedWork := filepath.Join(t.TempDir(), "seed")
-	if _, err := execRun(t, gitRoot, gitBin, "clone", filepath.Join(gitRoot, "clearedstack.com.git"), seedWork); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := execRun(t, seedWork, gitBin, "checkout", "-b", "main"); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := execRun(t, seedWork, gitBin, "config", "user.name", "Seed"); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := execRun(t, seedWork, gitBin, "config", "user.email", "seed@clearedstack.internal"); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.MkdirAll(filepath.Join(seedWork, "src", "data"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(seedWork, "src", "data", "sample-catalog.json"), []byte("{\"old\":true}\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := execRun(t, seedWork, gitBin, "add", "."); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := execRun(t, seedWork, gitBin, "commit", "-m", "Seed catalog"); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := execRun(t, seedWork, gitBin, "push", "origin", "HEAD:refs/heads/main"); err != nil {
-		t.Fatal(err)
-	}
-
-	pfSrv := newCGIHTTPBackend(backend, gitRoot)
-	defer pfSrv.Close()
+// TestServeAgainstPlainforgeContractV1 drives bellbuoy serve end to end
+// against mustertest.Fake and plainforgetest.Fake (Forge HTTP Contract v1),
+// covering internal-git, github-mirror, bearer token rotation, pod restart
+// onto an empty spool, and partial retry when mirror sync returns 503.
+func TestServeAgainstPlainforgeContractV1(t *testing.T) {
+	pf := plainforgetest.New("pf-token-1", "clearedstack.com", "sextant", "bellbuoy", "shipkeeper")
+	defer pf.Close()
 
 	fake := mustertest.New(token)
 	defer fake.Close()
+
+	pfTokenDir := t.TempDir()
+	pfTokenFile := filepath.Join(pfTokenDir, "pf-token")
+	if err := os.WriteFile(pfTokenFile, []byte("pf-token-1\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
 
 	startWithPlainforge := func(dir string) *served {
 		tokenFile := filepath.Join(dir, "token")
@@ -552,7 +513,8 @@ func TestServeAgainstPlainforgeSmartHTTP(t *testing.T) {
 		args := []string{
 			"serve",
 			"-muster", fake.Server.URL,
-			"-plainforge", pfSrv.URL,
+			"-plainforge", pf.Server.URL,
+			"-plainforge-token-file", pfTokenFile,
 			"-owners", ownersFile,
 			"-spool", filepath.Join(dir, "spool"),
 			"-token-file", tokenFile,
@@ -608,82 +570,168 @@ func TestServeAgainstPlainforgeSmartHTTP(t *testing.T) {
 		},
 	}
 
-	// Pod 1 handles an incident and all three proposal classes.
+	// Pod 1 handles an incident on mirrored sextant, an incident on unmirrored
+	// shipkeeper, and all three proposal classes.
 	pod1 := startWithPlainforge(t.TempDir())
 	fake.Offer(incident("PA-0001", "observed", "sextant", "E_PARSE"))
+	fake.Offer(incident("PA-0002", "observed", "shipkeeper", "E_PARSE"))
 	fake.Offer(ep1)
 	fake.Offer(ep2)
 	fake.Offer(ep3)
-	pod1.until("four steps to end on pod 1", func() bool { return len(fake.Ended()) == 4 })
+	pod1.until("five steps to end on pod 1", func() bool { return len(fake.Ended()) == 5 })
 	logs1 := pod1.stop()
+	if !strings.Contains(logs1, "tools=internal-git,github-mirror ") {
+		t.Fatalf("expected github-mirror enabled when -plainforge is set:\n%s", logs1)
+	}
 
-	// Pod 2 starts on a brand-new empty spool directory (simulating node
-	// rescheduling) and handles a repeat of the same incident on sextant.
+	// Rotate Plainforge bearer token and start Pod 2 on a fresh empty spool
+	// directory. Also force one 503 E_TIMEOUT on /mirror to prove partial
+	// progress retries github-mirror without counting the incident twice.
+	pf.SetToken("pf-token-2")
+	if err := os.WriteFile(pfTokenFile, []byte("pf-token-2\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	pf.ForcePath("/mirror", 1, http.StatusServiceUnavailable, `{"code":"E_TIMEOUT","message":"mirror busy"}`)
+
 	pod2 := startWithPlainforge(t.TempDir())
-	fake.Offer(incident("PA-0002", "observed", "sextant", "E_PARSE"))
-	pod2.until("repeat incident to end on pod 2", func() bool { return len(fake.Ended()) == 5 })
+	fake.Offer(incident("PA-0003", "observed", "sextant", "E_PARSE"))
+	pod2.until("repeat incident with mirror retry to end on pod 2", func() bool { return len(fake.Ended()) == 6 })
 	logs2 := pod2.stop()
 
-	if strings.Contains(logs1+logs2, pfSrv.URL) {
-		t.Fatalf("logs leaked Plainforge address:\n%s\n%s", logs1, logs2)
-	}
-
-	// Check every bare repository with git fsck --full --strict and inspect branches.
-	for _, repo := range []string{"clearedstack.com", "sextant", "bellbuoy"} {
-		bare := filepath.Join(gitRoot, repo+".git")
-		if out, err := execRun(t, bare, gitBin, "fsck", "--full", "--strict"); err != nil {
-			t.Fatalf("git fsck %s failed: %v\n%s", repo, err, out)
+	for _, secret := range []string{pf.Server.URL, "pf-token-1", "pf-token-2", "mirror busy"} {
+		if strings.Contains(logs1+logs2, secret) {
+			t.Fatalf("logs leaked %q:\n%s\n%s", secret, logs1, logs2)
 		}
 	}
 
-	csBare := filepath.Join(gitRoot, "clearedstack.com.git")
-	gotCatalog, err := execRun(t, csBare, gitBin, "show", "refs/heads/edit/EP-0001:src/data/sample-catalog.json")
-	if err != nil || gotCatalog != "The sample description should say which made-up rule it follows." {
-		t.Fatalf("edit/EP-0001 catalog = %q err=%v", gotCatalog, err)
+	changes := pf.Memory.Changes()
+	if len(changes) != 2 ||
+		changes[0].Repo != "clearedstack.com" || changes[0].Branch != "edit/EP-0001" ||
+		changes[0].Path != "src/data/sample-catalog.json" ||
+		changes[0].Content != "The sample description should say which made-up rule it follows." ||
+		changes[1].Repo != "sextant" || changes[1].Branch != "edit/EP-0002" ||
+		changes[1].Path != "tools/sample-portal/options.json" || changes[1].Content != "timeout = 30\n" {
+		t.Fatalf("changes = %+v", changes)
 	}
 
-	sxBare := filepath.Join(gitRoot, "sextant.git")
-	gotOpts, err := execRun(t, sxBare, gitBin, "show", "refs/heads/edit/EP-0002:tools/sample-portal/options.json")
-	if err != nil || gotOpts != "timeout = 30\n" {
-		t.Fatalf("edit/EP-0002 options = %q err=%v", gotOpts, err)
-	}
-	sxTasksRaw, err := execRun(t, sxBare, gitBin, "show", plainforge.TasksRef+":tasks.json")
-	if err != nil || !strings.Contains(sxTasksRaw, `"id": "sextant#1"`) || !strings.Contains(sxTasksRaw, `"occurrences": 2`) {
-		t.Fatalf("sextant tasks.json across pod restart:\n%s\nerr=%v", sxTasksRaw, err)
+	tasks := pf.Memory.Tasks()
+	if len(tasks) != 3 ||
+		tasks[0].ID != "sextant#1" || tasks[0].Occurrences != 2 ||
+		tasks[1].ID != "shipkeeper#1" || tasks[1].Occurrences != 1 ||
+		tasks[2].ID != "bellbuoy#1" || tasks[2].Key != "proposal-EP-0003" || tasks[2].Occurrences != 1 {
+		t.Fatalf("tasks = %+v", tasks)
 	}
 
-	bbBare := filepath.Join(gitRoot, "bellbuoy.git")
-	bbTasksRaw, err := execRun(t, bbBare, gitBin, "show", plainforge.TasksRef+":tasks.json")
-	if err != nil || !strings.Contains(bbTasksRaw, `"id": "bellbuoy#1"`) || !strings.Contains(bbTasksRaw, `"key": "proposal-EP-0003"`) {
-		t.Fatalf("bellbuoy tasks.json:\n%s\nerr=%v", bbTasksRaw, err)
+	// Mirrored repositories (sextant, clearedstack.com, bellbuoy) received
+	// SyncMirror calls; unmirrored shipkeeper did not.
+	mirrors := pf.Memory.Mirrors()
+	if len(mirrors) != 5 {
+		t.Fatalf("mirrors = %+v, want 5 successful calls", mirrors)
 	}
-}
-
-func execLookPath(file string) (string, error) {
-	return exec.LookPath(file)
-}
-
-func execRun(t *testing.T, dir string, bin string, args ...string) (string, error) {
-	t.Helper()
-	cmd := exec.Command(bin, args...)
-	if dir != "" {
-		cmd.Dir = dir
-	}
-	out, err := cmd.CombinedOutput()
-	return string(out), err
-}
-
-func newCGIHTTPBackend(backend, gitRoot string) *httptest.Server {
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		h := &cgi.Handler{
-			Path:   backend,
-			Stderr: io.Discard,
-			Env: []string{
-				"GIT_PROJECT_ROOT=" + gitRoot,
-				"GIT_HTTP_EXPORT_ALL=1",
-			},
+	for _, m := range mirrors {
+		if m.Repo == "shipkeeper" {
+			t.Fatalf("unmirrored repository shipkeeper received SyncMirror: %+v", m)
 		}
-		h.ServeHTTP(w, r)
-	}))
+	}
+	if pf.Count("/mirror") != 6 {
+		t.Fatalf("/mirror hit count = %d, want 6 (1 forced 503 + 5 successes)", pf.Count("/mirror"))
+	}
 }
 
+// TestProbeEndpointsAndClusterZeroArgMode checks the /healthz probe listener
+// and zero-argument in-cluster startup used when Shipkeeper reconciles app.yaml.
+func TestProbeEndpointsAndClusterZeroArgMode(t *testing.T) {
+	addr, stopProbe, err := startProbe("127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stopProbe()
+
+	// Shipkeeper TCP readiness check.
+	conn, err := net.DialTimeout("tcp", addr, time.Second)
+	if err != nil {
+		t.Fatalf("tcp readiness probe failed: %v", err)
+	}
+	conn.Close()
+
+	// Kubelet HTTP liveness check and negative method/path checks.
+	resp, err := http.Get("http://" + addr + "/healthz")
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusOK || string(body) != "{\"status\":\"ok\"}\n" {
+		t.Fatalf("GET /healthz = %d %q", resp.StatusCode, string(body))
+	}
+
+	headResp, err := http.Head("http://" + addr + "/healthz")
+	if err != nil {
+		t.Fatal(err)
+	}
+	headResp.Body.Close()
+	if headResp.StatusCode != http.StatusOK {
+		t.Fatalf("HEAD /healthz = %d", headResp.StatusCode)
+	}
+
+	postResp, err := http.Post("http://"+addr+"/healthz", "application/json", strings.NewReader("{}"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	postResp.Body.Close()
+	if postResp.StatusCode != http.StatusMethodNotAllowed {
+		t.Fatalf("POST /healthz = %d, want 405", postResp.StatusCode)
+	}
+
+	notFoundResp, err := http.Get("http://" + addr + "/other")
+	if err != nil {
+		t.Fatal(err)
+	}
+	notFoundResp.Body.Close()
+	if notFoundResp.StatusCode != http.StatusNotFound {
+		t.Fatalf("GET /other = %d, want 404", notFoundResp.StatusCode)
+	}
+	stopProbe()
+
+	// Zero-argument startup with environment settings and built-in Default() map.
+	fake := mustertest.New(token)
+	defer fake.Close()
+	pf := plainforgetest.New("", "trawl")
+	defer pf.Close()
+
+	dir := t.TempDir()
+	tokenFile := filepath.Join(dir, "token")
+	if err := os.WriteFile(tokenFile, []byte(token+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	env := map[string]string{
+		MusterEnv:     fake.Server.URL,
+		PlainforgeEnv: pf.Server.URL,
+		TokenFileEnv:  tokenFile,
+		SpoolEnv:      filepath.Join(dir, "spool"),
+		ListenEnv:     "127.0.0.1:0",
+	}
+	logs := &syncBuffer{}
+	done := make(chan int, 1)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go func() {
+		done <- run(ctx, nil, func(k string) string { return env[k] }, &bytes.Buffer{}, logs)
+	}()
+
+	fake.Offer(incident("PA-0010", "observed", "trawl", "E_PARSE"))
+	deadline := time.Now().Add(15 * time.Second)
+	for len(fake.Ended()) == 0 {
+		if time.Now().After(deadline) {
+			t.Fatalf("timed out waiting for zero-arg cluster mode\nlog:\n%s", logs.String())
+		}
+		time.Sleep(2 * time.Millisecond)
+	}
+	cancel()
+	if code := <-done; code != 0 {
+		t.Fatalf("zero-arg cluster mode exited %d:\n%s", code, logs.String())
+	}
+	if tasks := pf.Memory.Tasks(); len(tasks) != 1 || tasks[0].ID != "trawl#1" {
+		t.Fatalf("tasks = %+v", tasks)
+	}
+}
