@@ -16,8 +16,8 @@ spec:
 # Outbound connections are restricted to:
 #   1. Cluster DNS in kube-system (UDP/TCP 53).
 #   2. Muster in clearedstack on TCP 8080 (contract v1 worker calls).
-#   3. Plainforge in clearedstack on TCP 8080 (for internal-git and github-mirror
-#      once Plainforge exposes its task and branch interface).
+#   3. Plainforge in clearedstack on TCP 80 and 8080 (Git smart HTTP for
+#      proposal branches and cluster-private task branches).
 #   4. Public HTTPS on TCP 443 for webhook-alert, excluding cluster-internal,
 #      loopback, link-local, and CGNAT address ranges so Logbook, the Kubernetes
 #      API, and internal services remain unreachable.
@@ -65,6 +65,8 @@ spec:
             matchLabels:
               app.kubernetes.io/name: plainforge
       ports:
+        - protocol: TCP
+          port: 80
         - protocol: TCP
           port: 8080
     - to:

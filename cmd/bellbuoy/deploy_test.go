@@ -81,12 +81,13 @@ func TestDeployManifestsAndPosture(t *testing.T) {
 		t.Fatalf("Deployment images = %v, want single Lazarette image pinned by @sha256", deployImages)
 	}
 
-	// Pod posture, affinity, resource budget, and mounts.
+	// Pod posture, affinity, resource budget, Plainforge smart HTTP, and mounts.
 	requiredInApp := []string{
 		"kind: ServiceAccount",
 		"kind: ConfigMap",
 		"kind: Deployment",
 		"serviceAccountName: bellbuoy",
+		"- -plainforge\n            - http://plainforge.clearedstack.svc.cluster.local",
 		"key: kubernetes.io/arch\n                    operator: In\n                    values: [\"arm64\"]",
 		"key: kubernetes.io/hostname\n                    operator: NotIn\n                    values: [\"cm3588-plus\"]",
 		"runAsNonRoot: true",
@@ -136,6 +137,7 @@ func TestDeployManifestsAndPosture(t *testing.T) {
 		"kubernetes.io/metadata.name: kube-system",
 		"app.kubernetes.io/name: muster",
 		"app.kubernetes.io/name: plainforge",
+		"port: 80\n        - protocol: TCP\n          port: 8080",
 		"cidr: 0.0.0.0/0",
 		"- 10.0.0.0/8",
 		"- 172.16.0.0/12",
@@ -152,6 +154,38 @@ func TestDeployManifestsAndPosture(t *testing.T) {
 	}
 	if strings.Contains(netText, "logbook") || strings.Contains(netText, "5432") {
 		t.Errorf("deploy/networkpolicy.yaml must never open access to Logbook")
+	}
+
+	// Root kustomization.yaml and app.yaml for Keelworks and Shipkeeper.
+	kustRaw, err := os.ReadFile("../../kustomization.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	kustText := string(kustRaw)
+	if strings.Contains(kustText, "\t") || !strings.Contains(kustText, "- deploy/networkpolicy.yaml") || !strings.Contains(kustText, "- deploy/bellbuoy.yaml") {
+		t.Errorf("kustomization.yaml malformed:\n%s", kustText)
+	}
+
+	appManifestRaw, err := os.ReadFile("../../app.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	appManifest := string(appManifestRaw)
+	if strings.ContainsAny(appManifest, "\t\r\x00") {
+		t.Errorf("app.yaml contains forbidden bytes")
+	}
+	for _, wantLine := range []string{
+		"name: bellbuoy\n",
+		"namespace: cs-workers\n",
+		"image: bellbuoy\n",
+		"digest: sha256:0000000000000000000000000000000000000000000000000000000000000000\n",
+		"replicas: 1\n",
+		"port: 8080\n",
+		"memory: 30Mi\n",
+	} {
+		if !strings.Contains(appManifest, wantLine) {
+			t.Errorf("app.yaml missing %q:\n%s", wantLine, appManifest)
+		}
 	}
 }
 

@@ -169,6 +169,8 @@ spec:
             - serve
             - -muster
             - http://muster.clearedstack.svc.cluster.local:8080
+            - -plainforge
+            - http://plainforge.clearedstack.svc.cluster.local
             - -owners
             - /etc/bellbuoy/ownership_map.json
             - -spool

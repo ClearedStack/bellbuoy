@@ -6,8 +6,10 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"net/http/cgi"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -461,6 +463,8 @@ func TestServeRefusesToStartOnBadSettings(t *testing.T) {
 		want string
 	}{
 		{"bad address", []string{"-muster", "muster.example.invalid:8080/path", "-owners", ownersFile, "-spool", dir}, "", "bellbuoy: E_PARSE: muster address is not usable\n"},
+		{"bad plainforge", []string{"-muster", "http://muster.example.invalid", "-plainforge", "plainforge.example.invalid:8080/path", "-owners", ownersFile, "-spool", dir}, "", "bellbuoy: E_PARSE: plainforge address is not usable\n"},
+		{"plainforge and ledger", []string{"-muster", "http://muster.example.invalid", "-plainforge", "http://plainforge.example.invalid", "-ledger", badLedger, "-owners", ownersFile, "-spool", dir}, "", "bellbuoy: E_PARSE: plainforge address and task ledger cannot both be set\n"},
 		{"missing map", []string{"-muster", "http://muster.example.invalid", "-owners", filepath.Join(dir, "absent.json"), "-spool", dir}, "", "bellbuoy: E_PARSE: ownership map cannot be read\n"},
 		{"bad ledger", []string{"-muster", "http://muster.example.invalid", "-owners", ownersFile, "-spool", dir, "-ledger", badLedger}, "", "bellbuoy: E_PARSE: task ledger is not in the expected form\n"},
 		{"bad webhook", []string{"-muster", "http://muster.example.invalid", "-owners", ownersFile, "-spool", dir}, "ftp://example.invalid/made-up", "bellbuoy: E_PARSE: webhook address is not usable\n"},
@@ -474,3 +478,212 @@ func TestServeRefusesToStartOnBadSettings(t *testing.T) {
 		}
 	}
 }
+
+// TestServeAgainstPlainforgeSmartHTTP drives bellbuoy serve end to end against
+// mustertest.Fake and a real Git smart HTTP server (git-http-backend),
+// including pod rescheduling onto a fresh empty spool directory.
+func TestServeAgainstPlainforgeSmartHTTP(t *testing.T) {
+	gitBin, err := execLookPath("git")
+	if err != nil {
+		t.Skip("git binary not installed")
+	}
+	execPathOut, err := execRun(t, "", gitBin, "--exec-path")
+	if err != nil {
+		t.Fatalf("git --exec-path: %v", err)
+	}
+	backend := filepath.Join(strings.TrimSpace(execPathOut), "git-http-backend")
+	if _, err := os.Stat(backend); err != nil {
+		t.Skipf("git-http-backend not installed at %s", backend)
+	}
+
+	gitRoot := t.TempDir()
+	for _, repo := range []string{"clearedstack.com", "sextant", "bellbuoy"} {
+		bare := filepath.Join(gitRoot, repo+".git")
+		if _, err := execRun(t, gitRoot, gitBin, "init", "--bare", "--initial-branch=main", bare); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := execRun(t, bare, gitBin, "config", "http.receivepack", "true"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	seedWork := filepath.Join(t.TempDir(), "seed")
+	if _, err := execRun(t, gitRoot, gitBin, "clone", filepath.Join(gitRoot, "clearedstack.com.git"), seedWork); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := execRun(t, seedWork, gitBin, "checkout", "-b", "main"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := execRun(t, seedWork, gitBin, "config", "user.name", "Seed"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := execRun(t, seedWork, gitBin, "config", "user.email", "seed@clearedstack.internal"); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(seedWork, "src", "data"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(seedWork, "src", "data", "sample-catalog.json"), []byte("{\"old\":true}\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := execRun(t, seedWork, gitBin, "add", "."); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := execRun(t, seedWork, gitBin, "commit", "-m", "Seed catalog"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := execRun(t, seedWork, gitBin, "push", "origin", "HEAD:refs/heads/main"); err != nil {
+		t.Fatal(err)
+	}
+
+	pfSrv := newCGIHTTPBackend(backend, gitRoot)
+	defer pfSrv.Close()
+
+	fake := mustertest.New(token)
+	defer fake.Close()
+
+	startWithPlainforge := func(dir string) *served {
+		tokenFile := filepath.Join(dir, "token")
+		if err := os.WriteFile(tokenFile, []byte(token+"\n"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		s := &served{t: t, fake: fake, dir: dir, logs: &syncBuffer{}, done: make(chan int, 1)}
+		ctx, cancel := context.WithCancel(context.Background())
+		s.cancel = cancel
+		args := []string{
+			"serve",
+			"-muster", fake.Server.URL,
+			"-plainforge", pfSrv.URL,
+			"-owners", ownersFile,
+			"-spool", filepath.Join(dir, "spool"),
+			"-token-file", tokenFile,
+			"-idle", "5ms",
+		}
+		go func() { s.done <- run(ctx, args, noEnv, &bytes.Buffer{}, s.logs) }()
+		return s
+	}
+
+	rawProposal, err := os.ReadFile("../../testdata/contract/lease-proposal-results.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var ex struct {
+		Expect struct {
+			Body map[string]any `json:"body"`
+		} `json:"expect"`
+	}
+	if err := json.Unmarshal(rawProposal, &ex); err != nil {
+		t.Fatal(err)
+	}
+	ep1 := ex.Expect.Body
+	delete(ep1, "lease")
+	delete(ep1, "attempt")
+	delete(ep1, "expires")
+
+	ep2 := map[string]any{
+		"kind":  "proposal",
+		"id":    "EP-0002",
+		"state": "approved",
+		"lane":  "urgent",
+		"proposal": map[string]any{
+			"target":     "sextant.sample-portal.options",
+			"repository": "sextant",
+			"file":       "",
+			"edit_kind":  "CONFIG",
+			"change":     "timeout = 30\n",
+			"reason":     "",
+		},
+	}
+	ep3 := map[string]any{
+		"kind":  "proposal",
+		"id":    "EP-0003",
+		"state": "approved",
+		"lane":  "urgent",
+		"proposal": map[string]any{
+			"target":     "bellbuoy.sample-rule.report",
+			"repository": "bellbuoy",
+			"file":       "tools/internal-git/logic.go",
+			"edit_kind":  "ISSUE",
+			"change":     "Explain how an approved proposal becomes a branch.",
+			"reason":     "Readers look here first.",
+		},
+	}
+
+	// Pod 1 handles an incident and all three proposal classes.
+	pod1 := startWithPlainforge(t.TempDir())
+	fake.Offer(incident("PA-0001", "observed", "sextant", "E_PARSE"))
+	fake.Offer(ep1)
+	fake.Offer(ep2)
+	fake.Offer(ep3)
+	pod1.until("four steps to end on pod 1", func() bool { return len(fake.Ended()) == 4 })
+	logs1 := pod1.stop()
+
+	// Pod 2 starts on a brand-new empty spool directory (simulating node
+	// rescheduling) and handles a repeat of the same incident on sextant.
+	pod2 := startWithPlainforge(t.TempDir())
+	fake.Offer(incident("PA-0002", "observed", "sextant", "E_PARSE"))
+	pod2.until("repeat incident to end on pod 2", func() bool { return len(fake.Ended()) == 5 })
+	logs2 := pod2.stop()
+
+	if strings.Contains(logs1+logs2, pfSrv.URL) {
+		t.Fatalf("logs leaked Plainforge address:\n%s\n%s", logs1, logs2)
+	}
+
+	// Check every bare repository with git fsck --full --strict and inspect branches.
+	for _, repo := range []string{"clearedstack.com", "sextant", "bellbuoy"} {
+		bare := filepath.Join(gitRoot, repo+".git")
+		if out, err := execRun(t, bare, gitBin, "fsck", "--full", "--strict"); err != nil {
+			t.Fatalf("git fsck %s failed: %v\n%s", repo, err, out)
+		}
+	}
+
+	csBare := filepath.Join(gitRoot, "clearedstack.com.git")
+	gotCatalog, err := execRun(t, csBare, gitBin, "show", "refs/heads/edit/EP-0001:src/data/sample-catalog.json")
+	if err != nil || gotCatalog != "The sample description should say which made-up rule it follows." {
+		t.Fatalf("edit/EP-0001 catalog = %q err=%v", gotCatalog, err)
+	}
+
+	sxBare := filepath.Join(gitRoot, "sextant.git")
+	gotOpts, err := execRun(t, sxBare, gitBin, "show", "refs/heads/edit/EP-0002:tools/sample-portal/options.json")
+	if err != nil || gotOpts != "timeout = 30\n" {
+		t.Fatalf("edit/EP-0002 options = %q err=%v", gotOpts, err)
+	}
+	sxTasksRaw, err := execRun(t, sxBare, gitBin, "show", plainforge.TasksRef+":tasks.json")
+	if err != nil || !strings.Contains(sxTasksRaw, `"id": "sextant#1"`) || !strings.Contains(sxTasksRaw, `"occurrences": 2`) {
+		t.Fatalf("sextant tasks.json across pod restart:\n%s\nerr=%v", sxTasksRaw, err)
+	}
+
+	bbBare := filepath.Join(gitRoot, "bellbuoy.git")
+	bbTasksRaw, err := execRun(t, bbBare, gitBin, "show", plainforge.TasksRef+":tasks.json")
+	if err != nil || !strings.Contains(bbTasksRaw, `"id": "bellbuoy#1"`) || !strings.Contains(bbTasksRaw, `"key": "proposal-EP-0003"`) {
+		t.Fatalf("bellbuoy tasks.json:\n%s\nerr=%v", bbTasksRaw, err)
+	}
+}
+
+func execLookPath(file string) (string, error) {
+	return exec.LookPath(file)
+}
+
+func execRun(t *testing.T, dir string, bin string, args ...string) (string, error) {
+	t.Helper()
+	cmd := exec.Command(bin, args...)
+	if dir != "" {
+		cmd.Dir = dir
+	}
+	out, err := cmd.CombinedOutput()
+	return string(out), err
+}
+
+func newCGIHTTPBackend(backend, gitRoot string) *httptest.Server {
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h := &cgi.Handler{
+			Path:   backend,
+			Stderr: io.Discard,
+			Env: []string{
+				"GIT_PROJECT_ROOT=" + gitRoot,
+				"GIT_HTTP_EXPORT_ALL=1",
+			},
+		}
+		h.ServeHTTP(w, r)
+	}))
+}
+
