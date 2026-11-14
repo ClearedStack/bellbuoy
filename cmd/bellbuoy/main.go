@@ -20,6 +20,7 @@ import (
 	"runtime/debug"
 	"strings"
 	"syscall"
+	"time"
 
 	"github.com/ClearedStack/bellbuoy/internal/codes"
 	"github.com/ClearedStack/bellbuoy/internal/muster"
@@ -45,6 +46,19 @@ const (
 	// the owner's webhook. The address is treated as a credential.
 	WebhookEnv = "BELLBUOY_WEBHOOK_URL"
 
+	// Environment variables accepted by serve (and zero-argument in-cluster startup).
+	MusterEnv          = "MUSTER_URL"
+	PlainforgeEnv      = "PLAINFORGE_URL"
+	PlainforgeTokenEnv = "PLAINFORGE_TOKEN_FILE"
+	TokenFileEnv       = "BELLBUOY_TOKEN_FILE"
+	OwnersEnv          = "BELLBUOY_OWNERS"
+	SpoolEnv           = "BELLBUOY_SPOOL_DIR"
+	ListenEnv          = "BELLBUOY_LISTEN"
+
+	defaultClusterMuster     = "http://muster.clearedstack.svc.cluster.local:8080"
+	defaultClusterPlainforge = "http://plainforge.clearedstack.svc.cluster.local:8080"
+	defaultClusterListen     = ":8080"
+
 	// softLimit keeps the Go heap well inside the 30 MiB budget.
 	softLimit = 24 << 20
 
@@ -52,17 +66,18 @@ const (
 )
 
 const usage = `bellbuoy serve -muster ADDRESS -owners FILE [-plainforge ADDRESS]
+               [-plainforge-token-file FILE] [-listen ADDR]
                [-spool DIR] [-ledger FILE] [-token-file FILE]
                [-idle TIME] [-heartbeat TIME]
     Lease steps from the Muster at ADDRESS and work on them until told to
     stop. Each result is written to the spool before Muster is told, and
     removed only when Muster has acknowledged it.
 
-    When -plainforge is set, proposed changes are pushed to refs/heads/edit/*
-    and tasks are kept on refs/heads/bellbuoy/tasks in the owning Plainforge
-    repository over Git smart HTTP. Otherwise tasks and proposed changes are
-    kept in the local ledger file (default: tasks.ledger in the spool, where
-    the default spool is ` + spool.DefaultDir + `).
+    When -plainforge is set, tasks, proposed changes and mirror sync calls
+    go to Plainforge over its Forge HTTP Contract v1 (/v1/repos/{repo}/...).
+    Otherwise tasks and proposed changes are kept in the local ledger file
+    (default: tasks.ledger in the spool, where the default spool is
+    ` + spool.DefaultDir + `).
 
     If ` + WebhookEnv + ` is set, owner alerts are posted there. If it is
     not, no alerts are sent.
@@ -90,6 +105,9 @@ func main() {
 
 func run(ctx context.Context, args []string, getenv func(string) string, stdout, stderr io.Writer) int {
 	if len(args) == 0 {
+		if getenv(MusterEnv) != "" || getenv("KUBERNETES_SERVICE_HOST") != "" {
+			return serveClusterDefaults(ctx, getenv, stderr)
+		}
 		fmt.Fprint(stderr, usage)
 		return 2
 	}
@@ -193,23 +211,67 @@ func replay(ctx context.Context, args []string, getenv func(string) string, stdo
 	return 0
 }
 
+type serveConfig struct {
+	musterAddr      string
+	ownersPath      string
+	useDefaultMap   bool
+	plainforgeAddr  string
+	plainforgeToken string
+	spoolDir        string
+	ledgerPath      string
+	tokenFile       string
+	listenAddr      string
+	idle            time.Duration
+	heartbeat       time.Duration
+}
+
+// serveClusterDefaults runs serve when started in-cluster without CLI flags
+// (for example when reconciled directly from app.yaml by Shipkeeper).
+func serveClusterDefaults(ctx context.Context, getenv func(string) string, stderr io.Writer) int {
+	ownersPath := getenv(OwnersEnv)
+	useDefault := false
+	if ownersPath == "" {
+		if _, err := os.Stat(ownership.DefaultPath); err == nil {
+			ownersPath = ownership.DefaultPath
+		} else {
+			useDefault = true
+		}
+	}
+	cfg := serveConfig{
+		musterAddr:      firstNonEmpty(getenv(MusterEnv), defaultClusterMuster),
+		ownersPath:      ownersPath,
+		useDefaultMap:   useDefault,
+		plainforgeAddr:  firstNonEmpty(getenv(PlainforgeEnv), defaultClusterPlainforge),
+		plainforgeToken: getenv(PlainforgeTokenEnv),
+		spoolDir:        firstNonEmpty(getenv(SpoolEnv), spool.DefaultDir),
+		tokenFile:       firstNonEmpty(getenv(TokenFileEnv), muster.DefaultTokenFile),
+		listenAddr:      firstNonEmpty(getenv(ListenEnv), defaultClusterListen),
+		idle:            worker.DefaultIdle,
+		heartbeat:       worker.DefaultHeartbeat,
+	}
+	return runServe(ctx, cfg, getenv, stderr)
+}
+
 // serve leases steps from a real Muster until ctx is done.
 //
 // Only the sub-tools that have somewhere real to deliver to are run.
-// internal-git always runs, against Plainforge over Git smart HTTP when
-// -plainforge is set or against the local task ledger otherwise. webhook-alert
-// runs when a webhook is configured. github-mirror and portal-sse do not run:
-// Plainforge mirrors refs/heads/main and tags by itself, and Muster's contract
-// v1 has no worker call that takes a live event.
+// internal-git always runs, against Plainforge over Forge HTTP Contract v1
+// when -plainforge is set or against the local task ledger otherwise.
+// github-mirror runs when -plainforge is set so Plainforge's mirror endpoint
+// is notified on repository changes. webhook-alert runs when a webhook is
+// configured. portal-sse does not run: Muster's contract v1 emits proposal
+// state events directly from Muster's own /v1/feed.
 func serve(ctx context.Context, args []string, getenv func(string) string, stderr io.Writer) int {
 	fs := flag.NewFlagSet("serve", flag.ContinueOnError)
 	fs.SetOutput(stderr)
-	address := fs.String("muster", "", "address of Muster, such as http://host:port")
-	ownersPath := fs.String("owners", "", "ownership_map.json")
-	plainforgeAddr := fs.String("plainforge", "", "address of Plainforge over Git smart HTTP")
-	spoolDir := fs.String("spool", spool.DefaultDir, "spool directory")
+	address := fs.String("muster", getenv(MusterEnv), "address of Muster, such as http://host:port")
+	ownersPath := fs.String("owners", getenv(OwnersEnv), "ownership_map.json")
+	plainforgeAddr := fs.String("plainforge", getenv(PlainforgeEnv), "address of Plainforge over Forge HTTP Contract v1")
+	plainforgeToken := fs.String("plainforge-token-file", getenv(PlainforgeTokenEnv), "optional bearer token file for Plainforge")
+	spoolDir := fs.String("spool", firstNonEmpty(getenv(SpoolEnv), spool.DefaultDir), "spool directory")
 	ledgerPath := fs.String("ledger", "", "task ledger file when -plainforge is not set")
-	tokenFile := fs.String("token-file", muster.DefaultTokenFile, "ServiceAccount token file")
+	tokenFile := fs.String("token-file", firstNonEmpty(getenv(TokenFileEnv), muster.DefaultTokenFile), "ServiceAccount token file")
+	listenAddr := fs.String("listen", getenv(ListenEnv), "optional TCP address for /healthz and readiness probes, such as :8080")
 	idle := fs.Duration("idle", worker.DefaultIdle, "how long to wait when Muster has nothing to lease")
 	heartbeat := fs.Duration("heartbeat", worker.DefaultHeartbeat, "how often a held lease is kept alive")
 	if err := fs.Parse(args); err != nil {
@@ -219,33 +281,55 @@ func serve(ctx context.Context, args []string, getenv func(string) string, stder
 		fmt.Fprint(stderr, usage)
 		return 2
 	}
-	if *plainforgeAddr != "" && *ledgerPath != "" {
+	cfg := serveConfig{
+		musterAddr:      *address,
+		ownersPath:      *ownersPath,
+		plainforgeAddr:  *plainforgeAddr,
+		plainforgeToken: *plainforgeToken,
+		spoolDir:        *spoolDir,
+		ledgerPath:      *ledgerPath,
+		tokenFile:       *tokenFile,
+		listenAddr:      *listenAddr,
+		idle:            *idle,
+		heartbeat:       *heartbeat,
+	}
+	return runServe(ctx, cfg, getenv, stderr)
+}
+
+func runServe(ctx context.Context, cfg serveConfig, getenv func(string) string, stderr io.Writer) int {
+	if cfg.plainforgeAddr != "" && cfg.ledgerPath != "" {
 		return fail(stderr, codes.Broken("plainforge address and task ledger cannot both be set"))
 	}
 
-	queue, err := muster.NewClient(*address, *tokenFile, 0)
+	queue, err := muster.NewClient(cfg.musterAddr, cfg.tokenFile, 0)
 	if err != nil {
 		return fail(stderr, err)
 	}
-	owners, err := ownership.Load(*ownersPath)
+	var owners *ownership.Map
+	if cfg.useDefaultMap {
+		owners, err = ownership.Default()
+	} else {
+		owners, err = ownership.Load(cfg.ownersPath)
+	}
 	if err != nil {
 		return fail(stderr, err)
 	}
-	sp, err := spool.Open(*spoolDir)
+	sp, err := spool.Open(cfg.spoolDir)
 	if err != nil {
 		return fail(stderr, err)
 	}
 	var forge plainforge.Forge
-	if *plainforgeAddr != "" {
-		forge, err = plainforge.NewClient(*plainforgeAddr, 0)
+	if cfg.plainforgeAddr != "" {
+		forge, err = plainforge.NewClient(cfg.plainforgeAddr, cfg.plainforgeToken, 0)
 		if err != nil {
 			return fail(stderr, err)
 		}
 	} else {
-		if *ledgerPath == "" {
-			*ledgerPath = filepath.Join(*spoolDir, "tasks.ledger")
+		ledgerPath := cfg.ledgerPath
+		if ledgerPath == "" {
+			ledgerPath = filepath.Join(cfg.spoolDir, "tasks.ledger")
 		}
-		forge, err = plainforge.OpenLedger(*ledgerPath)
+		forge, err = plainforge.OpenLedger(ledgerPath)
 		if err != nil {
 			return fail(stderr, err)
 		}
@@ -253,6 +337,9 @@ func serve(ctx context.Context, args []string, getenv func(string) string, stder
 
 	deps := tools.Deps{Forge: forge, Owners: owners}
 	names := []string{"internal-git"}
+	if cfg.plainforgeAddr != "" {
+		names = append(names, "github-mirror")
+	}
 	if webhook := getenv(WebhookEnv); webhook != "" {
 		sender, err := webhookalert.NewHTTPSender(webhook, 0)
 		if err != nil {
@@ -262,19 +349,32 @@ func serve(ctx context.Context, args []string, getenv func(string) string, stder
 		names = append(names, "webhook-alert")
 	}
 
+	_, stopProbe, err := startProbe(cfg.listenAddr)
+	if err != nil {
+		return fail(stderr, err)
+	}
+	defer stopProbe()
+
 	w := &worker.Worker{
 		Queue:     queue,
 		Tools:     tools.Only(tools.All(deps), names...),
 		Spool:     sp,
 		Log:       func(line string) { fmt.Fprintln(stderr, line) },
-		Idle:      *idle,
-		Heartbeat: *heartbeat,
+		Idle:      cfg.idle,
+		Heartbeat: cfg.heartbeat,
 	}
 	fmt.Fprintf(stderr, "%s serve contract=%s tools=%s staged=%d unreadable=%d\n",
 		Name, Contract, strings.Join(names, ","), sp.Len(), sp.Skipped())
 	w.Run(ctx)
 	fmt.Fprintf(stderr, "%s stopped staged=%d\n", Name, sp.Len())
 	return 0
+}
+
+func firstNonEmpty(a, b string) string {
+	if a != "" {
+		return a
+	}
+	return b
 }
 
 // readJobs reads one job per line. Blank lines are skipped. A line that is

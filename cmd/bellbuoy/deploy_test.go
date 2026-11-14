@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -81,13 +82,17 @@ func TestDeployManifestsAndPosture(t *testing.T) {
 		t.Fatalf("Deployment images = %v, want single Lazarette image pinned by @sha256", deployImages)
 	}
 
-	// Pod posture, affinity, resource budget, Plainforge smart HTTP, and mounts.
+	// Pod posture, affinity, resource budget, Plainforge contract v1 HTTP, probes, and mounts.
 	requiredInApp := []string{
 		"kind: ServiceAccount",
 		"kind: ConfigMap",
 		"kind: Deployment",
 		"serviceAccountName: bellbuoy",
-		"- -plainforge\n            - http://plainforge.clearedstack.svc.cluster.local",
+		"- -plainforge\n            - http://plainforge.clearedstack.svc.cluster.local:8080",
+		"- -listen\n            - \":8080\"",
+		"containerPort: 8080",
+		"readinessProbe:\n            tcpSocket:\n              port: 8080",
+		"livenessProbe:\n            httpGet:\n              path: /healthz\n              port: 8080",
 		"key: kubernetes.io/arch\n                    operator: In\n                    values: [\"arm64\"]",
 		"key: kubernetes.io/hostname\n                    operator: NotIn\n                    values: [\"cm3588-plus\"]",
 		"runAsNonRoot: true",
@@ -109,11 +114,22 @@ func TestDeployManifestsAndPosture(t *testing.T) {
 		}
 	}
 
-	// Extract and parse the embedded ownership_map.json using Bellbuoy's own parser.
+	// Extract and parse the embedded ownership_map.json using Bellbuoy's own
+	// parser, and keep ownership.DefaultJSON identical to deploy/bellbuoy.yaml.
 	mapJSON := extractEmbeddedOwnershipMap(t, appText)
 	owners, err := ownership.Parse([]byte(mapJSON))
 	if err != nil {
 		t.Fatalf("embedded ownership_map.json failed ownership.Parse: %v", err)
+	}
+	var embeddedBuf, defaultBuf bytes.Buffer
+	if err := json.Compact(&embeddedBuf, []byte(mapJSON)); err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Compact(&defaultBuf, []byte(ownership.DefaultJSON)); err != nil {
+		t.Fatal(err)
+	}
+	if embeddedBuf.String() != defaultBuf.String() {
+		t.Fatalf("ownership.DefaultJSON drifted from ConfigMap in deploy/bellbuoy.yaml")
 	}
 	for _, repo := range []string{
 		"clearedstack.com", "muster", "logbook", "plainforge", "lazarette", "keelworks", "shipkeeper",
@@ -156,7 +172,7 @@ func TestDeployManifestsAndPosture(t *testing.T) {
 		t.Errorf("deploy/networkpolicy.yaml must never open access to Logbook")
 	}
 
-	// Root kustomization.yaml and app.yaml for Keelworks and Shipkeeper.
+	// Root kustomization.yaml, app.yaml, and test-only GitHub Actions workflow.
 	kustRaw, err := os.ReadFile("../../kustomization.yaml")
 	if err != nil {
 		t.Fatal(err)
@@ -186,6 +202,16 @@ func TestDeployManifestsAndPosture(t *testing.T) {
 		if !strings.Contains(appManifest, wantLine) {
 			t.Errorf("app.yaml missing %q:\n%s", wantLine, appManifest)
 		}
+	}
+
+	ciRaw, err := os.ReadFile("../../.github/workflows/tests.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ciText := string(ciRaw)
+	if strings.Contains(ciText, "\t") || !strings.Contains(ciText, "contents: read") ||
+		!strings.Contains(ciText, "go vet ./...") || !strings.Contains(ciText, "go test -race -count=1 ./...") {
+		t.Errorf(".github/workflows/tests.yml malformed:\n%s", ciText)
 	}
 }
 

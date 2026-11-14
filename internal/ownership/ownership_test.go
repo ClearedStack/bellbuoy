@@ -119,3 +119,21 @@ func TestLoadMissingFileNamesNoPath(t *testing.T) {
 		t.Fatalf("error text must not name the path: %q", got)
 	}
 }
+
+func TestDefaultMap(t *testing.T) {
+	m, err := Default()
+	if err != nil {
+		t.Fatalf("Default() failed: %v", err)
+	}
+	for _, repo := range registryRepos {
+		if !m.Known(repo) || !m.Mirrored(repo) {
+			t.Errorf("Default() missing or unmirrored repo %s", repo)
+		}
+	}
+	if r, ok := m.RepoForWorker("conn"); !ok || r != "clearedstack.com" {
+		t.Errorf("conn -> %q %v", r, ok)
+	}
+	if elem, ok := m.ElementForTarget("worker.bellbuoy.manifest"); !ok || elem.Repository != "bellbuoy" || elem.File != "app.yaml" || elem.Kind != "CONFIG" {
+		t.Errorf("worker.bellbuoy.manifest = %+v %v", elem, ok)
+	}
+}
