@@ -31,6 +31,7 @@ type example struct {
 	Expect struct {
 		Status int             `json:"status"`
 		Body   json.RawMessage `json:"body"`
+		Stream string          `json:"stream"`
 	} `json:"expect"`
 }
 
@@ -43,16 +44,23 @@ func compact(t *testing.T, raw []byte) string {
 	return buf.String()
 }
 
-// TestContractExamples replays Muster's own saved examples of the five worker
-// calls. For each one it checks two things.
+// TestContractExamples replays every saved example in Muster's
+// contract/v1/examples/.
 //
-// The request: Bellbuoy's client, asked to make the call in the example,
-// sends exactly the body in the example, field for field and in the same
-// order. Examples of requests no correct client would send (an unknown
-// field, a contract version that does not exist) are not sent.
+// For the five worker calls Bellbuoy makes (/v1/lease, /v1/heartbeat,
+// /v1/complete, /v1/fail, /v1/needs_subtool), it checks both that Bellbuoy's
+// client sends the exact request body in the example (when the example shows a
+// valid worker request) and that the client interprets Muster's answer as
+// CONTRACT.md specifies.
 //
-// The answer: given the status and body in the example, the client reports
-// what the contract means by them.
+// For refusal examples on other paths or methods, it feeds Muster's exact HTTP
+// status and refusal body to Bellbuoy's client and verifies the resulting
+// public code, cause mapping, and stripping of Muster's human reason text.
+//
+// For positive examples of calls reserved to other callers (/v1/items,
+// /v1/edits, /v1/health, /v1/release, /v1/feed, /healthz), it checks that none
+// is addressed as bellbuoy and that Bellbuoy's client exposes only the five
+// worker methods allowed to bellbuoy in CONTRACT.md.
 func TestContractExamples(t *testing.T) {
 	files, err := filepath.Glob("../../testdata/contract/*.json")
 	if err != nil || len(files) == 0 {
@@ -62,7 +70,18 @@ func TestContractExamples(t *testing.T) {
 	if err := os.WriteFile(tokenFile, []byte("made-up-token"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	workerCalls := map[string]bool{"/v1/lease": true, "/v1/heartbeat": true, "/v1/complete": true, "/v1/fail": true, "/v1/needs_subtool": true}
+	workerCalls := map[string]bool{
+		"/v1/lease":         true,
+		"/v1/heartbeat":     true,
+		"/v1/complete":      true,
+		"/v1/fail":          true,
+		"/v1/needs_subtool": true,
+	}
+	clientMethods := exportedMethods(reflect.TypeOf(&muster.Client{}))
+	wantMethods := []string{"Complete", "Fail", "Heartbeat", "Lease", "NeedsSubtool"}
+	if !reflect.DeepEqual(clientMethods, wantMethods) {
+		t.Fatalf("muster.Client methods = %v, want only %v", clientMethods, wantMethods)
+	}
 
 	replayed := map[string]bool{}
 	sent := 0
@@ -76,10 +95,31 @@ func TestContractExamples(t *testing.T) {
 		if err := json.Unmarshal(raw, &ex); err != nil {
 			t.Fatalf("%s: %v", name, err)
 		}
-		if ex.Request.Method != http.MethodPost || !workerCalls[ex.Request.Path] {
-			continue // not one of the five worker calls
-		}
 		t.Run(name, func(t *testing.T) {
+			if ex.About == "" || ex.Request.Method == "" || ex.Request.Path == "" {
+				t.Fatalf("incomplete example metadata: %+v", ex)
+			}
+
+			// Positive examples on calls outside the five worker endpoints
+			// belong to other callers in CONTRACT.md ("Who may call what").
+			if (ex.Request.Method != http.MethodPost || !workerCalls[ex.Request.Path]) && ex.Expect.Status < 400 {
+				if ex.Request.As == "bellbuoy" {
+					t.Fatalf("contract example %s has bellbuoy calling %s %s", name, ex.Request.Method, ex.Request.Path)
+				}
+				switch ex.Expect.Status {
+				case http.StatusOK, http.StatusCreated, http.StatusAccepted, http.StatusNoContent:
+				default:
+					t.Fatalf("unexpected positive status %d", ex.Expect.Status)
+				}
+				if len(ex.Expect.Body) > 0 {
+					_ = compact(t, ex.Expect.Body)
+				} else if ex.Expect.Status != http.StatusNoContent && ex.Expect.Stream == "" {
+					t.Fatalf("expected body or stream for status %d", ex.Expect.Status)
+				}
+				replayed[name] = true
+				return
+			}
+
 			var gotPath, gotBody, gotAuth, gotType string
 			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				b, _ := io.ReadAll(r.Body)
@@ -94,6 +134,18 @@ func TestContractExamples(t *testing.T) {
 			client, err := muster.NewClient(srv.URL, tokenFile, time.Second)
 			if err != nil {
 				t.Fatal(err)
+			}
+
+			// Refusal examples on non-worker paths or methods still use the
+			// same refusal envelope; replay the response through Client.Lease.
+			if ex.Request.Method != http.MethodPost || !workerCalls[ex.Request.Path] {
+				_, leased, callErr := client.Lease(ctx)
+				if leased || callErr == nil {
+					t.Fatalf("refusal %d must fail: leased=%v err=%v", ex.Expect.Status, leased, callErr)
+				}
+				checkRefusal(t, ex.Expect.Status, ex.Expect.Body, callErr)
+				replayed[name] = true
+				return
 			}
 
 			// What the example's request asks for.
@@ -222,42 +274,71 @@ func TestContractExamples(t *testing.T) {
 					t.Errorf("a 200 must be an acknowledgement: %v", callErr)
 				}
 			default:
-				var refusal struct {
-					Error string `json:"error"`
-					Cause string `json:"cause"`
-				}
-				if err := json.Unmarshal(ex.Expect.Body, &refusal); err != nil {
-					t.Fatal(err)
-				}
-				got := codes.From(callErr)
-				if got == nil || string(got.Code) != refusal.Error {
-					t.Fatalf("refusal %d %s: client reported %v, want %s", ex.Expect.Status, refusal.Cause, callErr, refusal.Error)
-				}
-				if errors.Is(callErr, muster.ErrLeaseNotHeld) != (refusal.Cause == "lease_not_held") {
-					t.Errorf("cause %s: ErrLeaseNotHeld = %v", refusal.Cause, errors.Is(callErr, muster.ErrLeaseNotHeld))
-				}
-				if errors.Is(callErr, muster.ErrMoveNotAllowed) != (refusal.Cause == "move_not_allowed") {
-					t.Errorf("cause %s: ErrMoveNotAllowed = %v", refusal.Cause, errors.Is(callErr, muster.ErrMoveNotAllowed))
-				}
+				checkRefusal(t, ex.Expect.Status, ex.Expect.Body, callErr)
 			}
 			replayed[name] = true
 		})
 	}
 
-	// The examples this component depends on must be among them.
+	if len(replayed) != len(files) || len(files) < 52 {
+		t.Fatalf("replayed %d of %d contract examples; every saved example must run", len(replayed), len(files))
+	}
 	for _, name := range []string{
-		"lease.json", "lease-incident.json", "lease-nothing.json", "lease-proposal.json", "heartbeat.json",
-		"complete.json", "fail-parse.json", "fail-timeout.json", "needs_subtool.json",
-		"refused-409-lease_not_held.json", "refused-409-move_not_allowed.json", "refused-422-unknown_contract.json", "refused-503-busy.json",
+		"lease.json", "lease-incident.json", "lease-nothing.json", "lease-proposal.json", "lease-proposal-results.json",
+		"heartbeat.json", "complete.json", "complete-proposal.json",
+		"fail-parse.json", "fail-timeout.json", "needs_subtool.json", "release.json",
+		"refused-400-bad_field-logbook.json", "refused-409-lease_not_held.json", "refused-409-move_not_allowed.json",
+		"refused-422-unknown_contract.json", "refused-422-unknown_value-logbook.json", "refused-503-busy.json",
 	} {
 		if !replayed[name] {
 			t.Errorf("contract example %s was not replayed", name)
 		}
 	}
-	if len(replayed) < 25 || sent < 12 {
-		t.Errorf("replayed %d examples and sent %d of their requests; expected more", len(replayed), sent)
+	if sent < 14 {
+		t.Errorf("sent %d exact requests; expected at least 14", sent)
 	}
-	t.Logf("replayed %d contract examples; sent the exact request of %d", len(replayed), sent)
+	t.Logf("replayed all %d contract examples; sent the exact request of %d", len(replayed), sent)
+}
+
+func checkRefusal(t *testing.T, status int, raw json.RawMessage, callErr error) {
+	t.Helper()
+	var refusal struct {
+		Error  string `json:"error"`
+		Cause  string `json:"cause"`
+		Reason string `json:"reason"`
+	}
+	if err := json.Unmarshal(raw, &refusal); err != nil {
+		t.Fatal(err)
+	}
+	got := codes.From(callErr)
+	if got == nil || string(got.Code) != refusal.Error {
+		t.Fatalf("refusal %d %s: client reported %v, want %s", status, refusal.Cause, callErr, refusal.Error)
+	}
+	if errors.Is(callErr, muster.ErrLeaseNotHeld) != (refusal.Cause == "lease_not_held") {
+		t.Errorf("cause %s: ErrLeaseNotHeld = %v", refusal.Cause, errors.Is(callErr, muster.ErrLeaseNotHeld))
+	}
+	if errors.Is(callErr, muster.ErrMoveNotAllowed) != (refusal.Cause == "move_not_allowed") {
+		t.Errorf("cause %s: ErrMoveNotAllowed = %v", refusal.Cause, errors.Is(callErr, muster.ErrMoveNotAllowed))
+	}
+	fixedReasons := map[string]bool{
+		"muster asked to be tried again":               true,
+		codes.From(muster.ErrLeaseNotHeld).Reason:      true,
+		codes.From(muster.ErrMoveNotAllowed).Reason:    true,
+		"muster refused the call":                      true,
+		"muster does not know this contract version":   true,
+	}
+	if !fixedReasons[got.Reason] {
+		t.Errorf("client reported unexpected non-fixed reason %q", got.Reason)
+	}
+}
+
+func exportedMethods(t reflect.Type) []string {
+	out := make([]string, 0, t.NumMethod())
+	for i := 0; i < t.NumMethod(); i++ {
+		out = append(out, t.Method(i).Name)
+	}
+	sort.Strings(out)
+	return out
 }
 
 func keysOf(m map[string]json.RawMessage) []string {

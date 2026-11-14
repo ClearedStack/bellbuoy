@@ -12,19 +12,20 @@
 
 ---
 
-> **Status: partly built.** The worker leases steps from Muster over its v1 contract and files a task for every item Muster holds or has paused. It is checked against Muster's own saved examples of the contract and against a fake Muster. It has not talked to a running Muster and has not run in a cluster. Tasks are kept in a file for now, because Plainforge has no interface for tasks yet. See [Not yet done](#not-yet-done).
+> **Status: ready to deploy against Muster contract v1.** The worker leases both `incident` and `proposal` steps from Muster over contract v1, files deduplicated tasks for held or paused items, routes approved `DATA`, `CONFIG` and `ISSUE` proposals and completes them to `building`, replays all 52 saved contract examples from Muster, and ships hardened `cs-workers` manifests under [`deploy/`](deploy). Until Plainforge exposes its multi-repository task, branch and mirror API, `bellbuoy serve` records tasks and proposed changes durably in `tasks.ledger` inside `/var/spool/cs`. See [Not yet done and needed from other components](#not-yet-done-and-needed-from-other-components).
 
 Bellbuoy is stage 10 of the ClearedStack pipeline. ClearedStack is an open pipeline that finds ideas for government-contracting tools, screens and scores them, and builds each one from the public rule. Bellbuoy is meant to be understood and used without the rest.
 
 ## What works today
 
-- **A task for every held or paused item.** `bellbuoy serve` leases Muster's incident steps. Each one says which worker left which item held or paused, and in what state. Bellbuoy opens a task in that worker's repository, or adds to the one already open for the same kind of incident, then completes the step with the item's state unchanged and no result, as the contract requires.
-- **Muster's five calls.** `lease`, `heartbeat`, `complete`, `fail` and `needs_subtool`, as contract v1 defines them. The ServiceAccount token is read fresh for every call. No redirect is followed and no proxy is used.
+- **A task for every held or paused item.** `bellbuoy serve` leases Muster's `incident` steps. Each one says which worker left which item held or paused, and in what state. Bellbuoy opens a task in that worker's repository, or adds to the one already open for the same kind of incident, then completes the step with the item's state unchanged and no result, as the contract requires.
+- **Approved Portal proposals move to `building`.** `bellbuoy serve` leases Muster's `proposal` steps in `state: "approved"`, verifies the proposal against `ownership_map.json` (recovering `file` from `elements` when Muster restarts over PostgreSQL 17), proposes branch `edit/EP-XXXX` for `DATA`/`CONFIG` or opens one task for `ISSUE`, and completes the step to `state: "building"` with the recorded change or task as `result`.
+- **Muster's five calls.** `lease`, `heartbeat`, `complete`, `fail` and `needs_subtool`, as contract v1 defines them. All 52 saved examples from Muster's `contract/v1/examples/` are replayed in `internal/muster/contract_test.go`. The ServiceAccount token is read fresh for every call. No redirect is followed and no proxy is used.
 - **One task per failure.** A failure is given a fingerprint from the worker's name, the error code and the shape of the message. The first time a fingerprint is seen, a task is opened in the repository that owns the worker. Every repeat adds one to that task's count. Two hundred identical failures make one task with a count of 200.
-- **Approved edits become changes.** An owner-approved `DATA` or `CONFIG` edit is committed on its own branch with a request to merge it. An `ISSUE` edit becomes a task. The same edit delivered twice changes nothing the second time.
+- **Approved edits become changes.** An owner-approved `DATA` or `CONFIG` proposal or edit is committed on its own branch with a request to merge it. An `ISSUE` proposal or edit becomes a task. The same proposal or edit delivered twice changes nothing the second time.
 - **Mirror requests.** After a write to a repository that has a public mirror, Plainforge is asked to bring the mirror up to date, for source and tasks only. A request that names images, secrets or captures is paused whole.
 - **Owner alerts.** One JSON alert is posted to a webhook for a new fingerprint, a `P0` crash or dead letter, or urgent regulatory drift. Repeats are quiet.
-- **Live stream events.** Edit pill states (`Proposed`, `Approved`, `Building`, `Live`) and failure counts are handed to Muster for the Portal.
+- **Live stream events.** Edit pill states (`Proposed`, `Approved`, `Building`, `Live`) and failure counts are prepared for the Portal.
 - **Stop instead of guess.** A job that no rule covers is paused as `needs_subtool` with `E_NEEDS_SUBTOOL`, and the rest of the queue carries on.
 - **Nothing is lost when something outside is down.** A timed-out delivery is staged on disk and retried, from one second up to five minutes apart, until it lands. The result of every step is written to disk before Muster is told, and removed only when Muster answers `200`. Finished work is not repeated, across retries, restarts, or a step being handed out again.
 - **Nothing private gets out.** A failure message reaches a task only as its sanitized pattern (`dial tcp # timeout after # on #`). It never reaches an alert, an event or a log line. Errors carry one of three codes and a fixed reason.
@@ -34,10 +35,11 @@ Bellbuoy is stage 10 of the ClearedStack pipeline. ClearedStack is an open pipel
 You need Go 1.24 or later. There are no other dependencies.
 
 ```sh
-go test ./...
+go vet ./...
+go test -race ./...
 ```
 
-runs every test, including the saved examples.
+runs every static check and test, including all sub-tool fixtures and all 52 saved Muster contract examples.
 
 ```sh
 go run ./cmd/bellbuoy replay \
@@ -55,15 +57,15 @@ bellbuoy serve \
   -owners ownership_map.json
 ```
 
-leases steps from a real Muster and works on them until it is told to stop. It reads the pod's ServiceAccount token, stages results in `/var/spool/cs`, and keeps tasks in `tasks.ledger` in that folder. When Muster has nothing to lease it waits two seconds and asks again. Other flags: `-spool`, `-ledger`, `-token-file`, `-idle` and `-heartbeat`.
+leases steps from a real Muster and works on them until it is told to stop. It reads the pod's ServiceAccount token, stages results in `/var/spool/cs`, and keeps tasks and proposed branch changes in `tasks.ledger` in that folder. When Muster has nothing to lease it waits two seconds and asks again. Other flags: `-spool`, `-ledger`, `-token-file`, `-idle` and `-heartbeat`.
 
-In `serve`, only the sub-tools with somewhere real to deliver to are run: `internal-git` always, and `webhook-alert` when `BELLBUOY_WEBHOOK_URL` is set. If it is not set, no alerts are sent. `github-mirror` and `portal-sse` are not run: the task ledger has no mirror, and Muster's contract has no call that takes a live event.
+In `serve`, only the sub-tools with somewhere real to deliver to are run: `internal-git` always, and `webhook-alert` when `BELLBUOY_WEBHOOK_URL` is set. If it is not set, no alerts are sent. `github-mirror` and `portal-sse` are not run: the task ledger has no mirror, and Muster's `/v1/feed` emits proposal `building` events directly when Bellbuoy completes a proposal without a separate worker event call.
 
-To build the image, with [`ko`](https://ko.build) and no Dockerfile:
+To build the `arm64` image with [`ko`](https://ko.build) and no Dockerfile (base image pinned by digest in [`.ko.yaml`](.ko.yaml)):
 
 ```sh
 KO_DOCKER_REPO=lazarette.clearedstack.svc.cluster.local:5000 \
-  ko build --base-import-paths ./cmd/bellbuoy
+  ko build --base-import-paths --platform=linux/arm64 ./cmd/bellbuoy
 ```
 
 ## How it is laid out
@@ -71,6 +73,7 @@ KO_DOCKER_REPO=lazarette.clearedstack.svc.cluster.local:5000 \
 | Path | What it holds |
 | --- | --- |
 | [`cmd/bellbuoy`](cmd/bellbuoy) | The command. |
+| [`deploy/`](deploy) | Kubernetes manifests (`bellbuoy.yaml` and `networkpolicy.yaml`) for namespace `cs-workers`. |
 | [`tools/registry.yaml`](tools/registry.yaml) | The four sub-tools, in the order they are tried. |
 | `tools/<name>/match.go` | The sub-tool's matching rule. |
 | `tools/<name>/logic.go` | The sub-tool's logic. |
@@ -79,7 +82,7 @@ KO_DOCKER_REPO=lazarette.clearedstack.svc.cluster.local:5000 \
 | [`internal/tasks`](internal/tasks) | The open-or-add-to rule. |
 | [`internal/sanitize`](internal/sanitize) | Failure-pattern sanitizing and shape checks for every identifier. |
 | [`internal/codes`](internal/codes) | The three public error codes. |
-| [`internal/ownership`](internal/ownership) | Reader for `ownership_map.json`. |
+| [`internal/ownership`](internal/ownership) | Reader for `ownership_map.json` (both Muster's `elements` form and the cluster map). |
 | [`internal/route`](internal/route) | Runs one job through the sub-tools. |
 | [`internal/worker`](internal/worker) | The lease loop: urgent before normal before backfill. |
 | [`internal/spool`](internal/spool) | Unfinished jobs on disk. |
@@ -93,14 +96,14 @@ Every rule has saved examples, and a change in behaviour fails a test.
 
 | Where | Examples |
 | --- | --- |
-| `tools/internal-git/fixtures` | 41 |
-| `tools/github-mirror/fixtures` | 16 |
+| `tools/internal-git/fixtures` | 48 |
+| `tools/github-mirror/fixtures` | 17 |
 | `tools/webhook-alert/fixtures` | 16 |
-| `tools/portal-sse/fixtures` | 18 |
+| `tools/portal-sse/fixtures` | 19 |
 | `internal/tasks/testdata` | 2, one of them the two hundred identical failures |
 | `internal/fingerprint/testdata` | 7 fingerprints, worked out by a separate implementation |
 | `testdata/replay` | 1 run of the whole worker |
-| `testdata/contract` | 50 examples copied from Muster's contract v1. The 29 that are worker calls are replayed through the client. |
+| `testdata/contract` | All 52 examples copied from Muster's `contract/v1/examples/`, every one replayed in `internal/muster/contract_test.go`. |
 
 After a deliberate change, `go test ./tools/... -update` rewrites the expected results. Read the difference before committing it.
 
@@ -108,34 +111,34 @@ After a deliberate change, `go test ./tools/... -update` rewrites the expected r
 
 | Setting | What it is |
 | --- | --- |
-| `BELLBUOY_WEBHOOK_URL` | Address of the owner's webhook. Treated as a credential: never logged, never put in an error. If it is not set, `replay` keeps alerts and prints them, and `serve` sends none. |
+| `BELLBUOY_WEBHOOK_URL` | Address of the owner's webhook. Treated as a credential: never logged, never put in an error. Mounted optionally from Secret `bellbuoy-webhook` in `cs-workers`. If it is not set, `replay` keeps alerts and prints them, and `serve` sends none. |
 | `-muster` | Address of Muster, for `serve`. Never logged, never put in an error. |
 | `-token-file` | The ServiceAccount token file. The default is where a pod finds it. |
 | `GOMEMLIMIT` | If not set, the command sets a soft limit of 24 MiB on the Go heap. |
 
-`ownership_map.json` says which repository owns what. Its form is described in [`SPEC.md`](SPEC.md), and [`testdata/ownership_map.json`](testdata/ownership_map.json) is a made-up one.
+`ownership_map.json` says which repository owns what. Its form is described in [`SPEC.md`](SPEC.md); [`deploy/bellbuoy.yaml`](deploy/bellbuoy.yaml) embeds the cluster map for all 17 ClearedStack repositories, and [`testdata/ownership_map.json`](testdata/ownership_map.json) is the made-up one for tests.
 
 ## Requirements and where they stand
 
 | Requirement in `SPEC.md` | State |
 | --- | --- |
 | Drain `urgent` before `normal` before `backfill` | Built and tested. |
-| `lease`, `heartbeat`, `complete`, `fail`, `needs_subtool` over HTTP | Built to Muster's contract v1. Muster's 29 saved examples of the worker calls are replayed: the client sends exactly the request in each of the 23 a correct client can send, and reads all 29 answers as the contract means them. Not yet run against a running Muster. |
-| A task for every held or paused item | Built and tested end to end against the fake server. Tasks go to a ledger file, not to Plainforge. |
+| `lease`, `heartbeat`, `complete`, `fail`, `needs_subtool` over HTTP | Built to Muster's contract v1. All 52 saved examples from `contract/v1/examples/` are replayed in `internal/muster/contract_test.go`. |
+| A task for every held or paused item (`incident`) | Built and tested end to end against `mustertest.Fake`, including Muster's saved `lease-incident.json`. |
 | Fingerprint and open-or-add-to | Built and tested. |
-| Edit-to-repo loop for `DATA`, `CONFIG`, `ISSUE` | Built and tested against the stand-in, in the shape assumed before Muster's contract. Not wired to Muster's proposals. No client for the real Plainforge. |
+| Edit-to-repo loop for `DATA`, `CONFIG`, `ISSUE` (`proposal` and `edit`) | Built and tested end to end for Muster's `proposal` steps (`approved` to `building`), including after a Muster restart over PostgreSQL 17. Persists to `tasks.ledger` until Plainforge exposes its HTTP task/branch API. |
 | `internal-git`, `github-mirror`, `webhook-alert`, `portal-sse` | Built, each with a rule, logic and saved examples. |
-| Live stream: edit pills and operations | Built and tested against the stand-in. Not run in `serve`: Muster's contract has no call that takes an event. |
-| Live stream: item-lifecycle and registry pages | Not done. Paused as `needs_subtool`. |
+| Live stream: edit pills and operations | Proposal `building` pills are driven via Muster's `POST /v1/complete` (`state: "building"`). `portal-sse` is built and tested against the stand-in; Muster's contract v1 has no separate worker event endpoint. |
+| Live stream: item-lifecycle and registry pages | Paused as `needs_subtool` until their event shapes are specified in the contract. |
 | `E_TIMEOUT`: stage in the spool and retry with backoff | Built and tested, including across a restart and a step being handed out again. |
 | `E_PARSE`: refuse without touching the repository | Built and tested. |
 | `E_NEEDS_SUBTOOL`: fail closed and pause | Built and tested. |
 | Only sanitized codes and fingerprints leave | Built and tested. |
 | Source-only mirroring | Built and tested. |
-| No connection to Logbook, no database credentials | True by construction: nothing in the code opens one. |
-| 30 MiB memory budget | Measured, not yet seen in a cluster. See below. |
-| Non-root, no added privileges, read-only filesystem apart from the spool | The image runs as a user other than root and the program writes only to the spool. Not yet run in a cluster. No manifest. |
-| Image built with `ko`, no Dockerfile | Built once with `ko build --push=false`: a 3.4 MB image that runs as user 65532. Not pushed anywhere. |
+| No connection to Logbook, no database credentials | True by construction and enforced by [`deploy/networkpolicy.yaml`](deploy/networkpolicy.yaml). |
+| 30 MiB memory budget | Measured well below 30 MiB and capped at `30Mi` in [`deploy/bellbuoy.yaml`](deploy/bellbuoy.yaml) (`GOMEMLIMIT=24MiB`). |
+| Non-root, no added privileges, read-only filesystem apart from the spool | Enforced in [`deploy/bellbuoy.yaml`](deploy/bellbuoy.yaml) (`runAsNonRoot: true`, UID `65532`, `readOnlyRootFilesystem: true`, `drop: ["ALL"]`, `arm64` node affinity excluding `cm3588-plus`) and verified by `TestDeployManifestsAndPosture`. |
+| Image built with `ko`, no Dockerfile, pinned by digest | Base image pinned by digest in [`.ko.yaml`](.ko.yaml); workload image pinned by `@sha256:` in [`deploy/bellbuoy.yaml`](deploy/bellbuoy.yaml). |
 
 ### Memory
 
@@ -144,20 +147,17 @@ After a deliberate change, `go test ./tools/... -update` rewrites the expected r
 - A test runs 11,000 jobs through the lease loop with stand-ins that keep nothing. The Go heap ends at about 220 KiB, where it started, and everything the runtime has taken from the system is about 13 MiB.
 - `replay` keeps the whole input and every result in memory in order to print them, so it grows with the file: 20,000 jobs peaked at 32 MiB when last measured, which is over the budget. That is the replay harness, not the loop.
 
-## Not yet done
+## Not yet done and needed from other components
 
-- **A run against a running Muster.** The client is checked against Muster's saved examples of the contract and a fake server, which is not the same as talking to Muster itself.
-- **A way to say "no rule" for an incident or a proposal.** Muster refuses `needs_subtool` for those steps. When Bellbuoy has no rule for one, it writes nothing, logs the reason and lets the lease run out, so Muster offers the step again about once a minute until a rule or a setting covers it. The commonest cause will be a worker with no owner in `ownership_map.json`.
-- **An ownership map for the cluster.** Bellbuoy's `ownership_map.json` has its own form, different from Muster's, and must name the repository that owns each worker. Only a made-up one for tests is in this repository.
-- **A client for Plainforge.** Plainforge has no interface for tasks yet. Until it does, `serve` keeps tasks in a ledger file and nothing reaches a repository.
-- **Proposals.** Muster's contract has Bellbuoy complete an approved proposal to `building`. The edit rule here still expects the shape assumed before that contract, so a proposal leased from Muster is answered with `needs_subtool`.
-- **Mirroring and the live stream in `serve`.** Neither has anywhere to deliver to yet.
-- **The item-lifecycle and registry streams.** Their states are not written down here. `status` jobs for them are paused.
-- **A Kubernetes manifest.** The security settings, the spool volume and the priority class are not written down as a manifest. The priority class has no name in the registry.
-- **An occurrence can be counted twice** if Bellbuoy is stopped after the task is counted and before the result is written to the spool.
-- **Two identical incidents can be counted once.** Results are staged by item. If a result is still staged, unacknowledged, when Muster raises a second incident for the same item with the same worker, code and state, the second cannot be told from the first being offered again, and is not counted. A second incident that differs is worked on afresh.
-- **Alerts are not signed.** The specification does not ask for it.
-- **One open task per fingerprint relies on one copy of Bellbuoy running.** Two copies could each open a task for the same new failure.
+- **Plainforge HTTP API (`ClearedStack/plainforge`).** Plainforge currently serves single-repository Git smart HTTP and does not yet expose multi-repository hosting, a task/issue API, a branch-proposal API, or a GitHub push-mirror endpoint. Until Plainforge provides those endpoints behind `plainforge.Forge`, `bellbuoy serve` records tasks and proposed changes durably in `/var/spool/cs/tasks.ledger` and leaves `github-mirror` disabled in `serve`.
+- **Muster contract / Logbook columns (`ClearedStack/muster`, `ClearedStack/logbook`).**
+  - In PostgreSQL 17 (`core.edit_proposal`), `file` and `reason` are kept in Muster's in-memory `beside` map rather than columns in `core.edit_proposal`; Bellbuoy recovers `file` from `ownership_map.json` when Muster restarts, and persisting `file` and `reason` in `core.edit_proposal` would preserve visitor rationale across Muster restarts as well.
+  - Muster's contract v1 offers `incident` and `proposal` steps to `bellbuoy`; it has no step kind yet for regulatory `drift` or explicit `mirror` jobs, and no worker call to publish `operations`, `item-lifecycle` or `registry` SSE events (`proposal` `building` and `live` events are emitted by Muster itself).
+  - Muster refuses `needs_subtool` on `incident` and `proposal` steps (`409 move_not_allowed`), so if a step names an unlisted worker or repository, Bellbuoy writes nothing and lets the lease expire for Muster to re-offer once configuration is updated.
+  - Muster's deployment in `clearedstack` must allow ingress on TCP `8080` from `cs-workers` pods (`app.kubernetes.io/name: bellbuoy`) and accept ServiceAccount tokens from `system:serviceaccount:cs-workers:bellbuoy`.
+- **Keelworks and Lazarette (`ClearedStack/keelworks`, `ClearedStack/lazarette`).** Must build `./cmd/bellbuoy` with `ko` for `linux/arm64`, push to `lazarette.clearedstack.svc.cluster.local:5000/bellbuoy`, and substitute the resulting `sha256` digest into [`deploy/bellbuoy.yaml`](deploy/bellbuoy.yaml) before Shipkeeper applies it.
+- **Cluster Secret for alerts (optional).** If owner webhook alerts are desired, create or seal Secret `bellbuoy-webhook` (`key: url`) in namespace `cs-workers`.
+- **Single replica assumption.** One replica of Bellbuoy runs (`replicas: 1`, `strategy: Recreate`) so open-or-add-to task deduplication and the local spool cannot race.
 
 `SPEC.md` was changed while building, to define things it named and did not define. Each change and its reason is listed at the end of that file.
 
@@ -168,6 +168,7 @@ After a deliberate change, `go test ./tools/... -update` rewrites the expected r
 | [`SPEC.md`](SPEC.md) | The specification: what Bellbuoy does, its interfaces, how it fails and how it is kept safe. |
 | [`PROMPT.md`](PROMPT.md) | The prompt the build was started with. It says what to build and the rules to build it under. |
 | [`component.json`](component.json) | This component’s entry in the ClearedStack naming registry. |
+| [`deploy/`](deploy) | Kubernetes manifests (`ServiceAccount`, `ConfigMap`, `Deployment`, `NetworkPolicy`) for `cs-workers`. |
 | [`brand/`](brand) | The Bellbuoy logo and mark, for light and dark backgrounds. |
 
 ## At a glance

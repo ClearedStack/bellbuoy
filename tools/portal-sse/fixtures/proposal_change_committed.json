@@ -1,0 +1,49 @@
+{
+  "about": "internal-git has filed an approved proposal. The visitor's pill moves to Building.",
+  "job": {
+    "id": "EP-0001",
+    "lane": "urgent",
+    "kind": "proposal",
+    "lease": "EP-0001.2.1",
+    "state": "approved",
+    "attempt": 1,
+    "payload": {
+      "proposal": {
+        "target": "catalog.sample-calculator.description",
+        "repository": "clearedstack.com",
+        "file": "src/data/sample-catalog.json",
+        "edit_kind": "DATA",
+        "change": "The sample description should say which made-up rule it follows.",
+        "reason": "It reads as if no rule applies."
+      }
+    }
+  },
+  "state": {
+    "change": {
+      "repo": "clearedstack.com",
+      "branch": "edit/EP-0001",
+      "edit": "EP-0001",
+      "created": true
+    }
+  },
+  "want": {
+    "match": true,
+    "state": {
+      "change": {
+        "repo": "clearedstack.com",
+        "branch": "edit/EP-0001",
+        "edit": "EP-0001",
+        "created": true
+      }
+    },
+    "effects": {
+      "events": [
+        {
+          "topic": "pill",
+          "edit": "EP-0001",
+          "state": "Building"
+        }
+      ]
+    }
+  }
+}

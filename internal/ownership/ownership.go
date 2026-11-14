@@ -1,19 +1,30 @@
 // Package ownership reads ownership_map.json, the file that says which
-// repository owns the fix for a worker's failures or for an edited file.
+// repository owns the fix for a worker's failures or for an edited element
+// or file.
 //
-// The file has three parts:
+// It accepts both Muster's contract v1 form:
 //
 //	{
-//	  "repos":   {"muster": {"mirror": true}},
-//	  "workers": {"muster": "muster"},
-//	  "paths":   [{"prefix": "platform/", "repo": "clearedstack.com"}]
+//	  "elements": {
+//	    "catalog.sample-calculator.description": {
+//	      "repository": "clearedstack.com",
+//	      "file": "src/data/sample-catalog.json",
+//	      "kind": "DATA"
+//	    }
+//	  }
 //	}
 //
-// "repos" lists every repository Bellbuoy may write to and whether it has a
-// public mirror. "workers" maps a worker's name to the repository that owns
-// it. "paths" maps the target of a Portal edit to a repository: a prefix
-// ending in "/" covers everything under it, any other prefix covers that one
-// file, and the longest matching prefix wins.
+// and the extended cluster form with explicit "repos", "workers" and "paths":
+//
+//	{
+//	  "repos":    {"muster": {"mirror": true}},
+//	  "workers":  {"muster": "muster"},
+//	  "paths":    [{"prefix": "platform/", "repo": "clearedstack.com"}],
+//	  "elements": {...}
+//	}
+//
+// When a map supplies only "elements", the repositories and worker-to-repo
+// mappings default to the ClearedStack naming registry.
 package ownership
 
 import (
@@ -31,10 +42,60 @@ import (
 // maxFile is the largest ownership map accepted, in bytes.
 const maxFile = 1 << 20
 
+// registryRepos lists the seventeen repositories in the naming registry.
+var registryRepos = []string{
+	"assay",
+	"bellbuoy",
+	"chartroom",
+	"clearedstack.com",
+	"countersign",
+	"keelworks",
+	"lazarette",
+	"logbook",
+	"moldloft",
+	"muster",
+	"plainforge",
+	"sextant",
+	"shakedown",
+	"shipkeeper",
+	"tidegauge",
+	"trawl",
+	"waybill",
+}
+
+// registryComponents lists the sixteen components in the naming registry
+// whose failures map to their own repository.
+var registryComponents = []string{
+	"assay",
+	"bellbuoy",
+	"chartroom",
+	"countersign",
+	"keelworks",
+	"lazarette",
+	"logbook",
+	"moldloft",
+	"muster",
+	"plainforge",
+	"sextant",
+	"shakedown",
+	"shipkeeper",
+	"tidegauge",
+	"trawl",
+	"waybill",
+}
+
+// Element describes one editable element in Muster's ownership_map.json.
+type Element struct {
+	Repository string `json:"repository"`
+	File       string `json:"file"`
+	Kind       string `json:"kind"`
+}
+
 type file struct {
-	Repos   map[string]repo   `json:"repos"`
-	Workers map[string]string `json:"workers"`
-	Paths   []pathRule        `json:"paths"`
+	Repos    map[string]repo    `json:"repos"`
+	Workers  map[string]string  `json:"workers"`
+	Paths    []pathRule         `json:"paths"`
+	Elements map[string]Element `json:"elements"`
 }
 
 type repo struct {
@@ -48,9 +109,10 @@ type pathRule struct {
 
 // Map is a checked ownership map.
 type Map struct {
-	repos   map[string]repo
-	workers map[string]string
-	paths   []pathRule // longest prefix first
+	repos    map[string]repo
+	workers  map[string]string
+	paths    []pathRule // longest prefix first
+	elements map[string]Element
 }
 
 // Load reads and checks the file at path.
@@ -79,6 +141,16 @@ func Parse(data []byte) (*Map, error) {
 	if _, err := dec.Token(); err != io.EOF {
 		return nil, codes.Broken("ownership map has text after its end")
 	}
+	if f.Repos == nil && f.Workers == nil && f.Paths == nil && f.Elements != nil {
+		f.Repos = make(map[string]repo, len(registryRepos))
+		for _, name := range registryRepos {
+			f.Repos[name] = repo{Mirror: true}
+		}
+		f.Workers = make(map[string]string, len(registryComponents))
+		for _, name := range registryComponents {
+			f.Workers[name] = name
+		}
+	}
 	for name := range f.Repos {
 		if !sanitize.IsRepo(name) {
 			return nil, codes.Broken("ownership map names a malformed repository")
@@ -105,7 +177,28 @@ func Parse(data []byte) (*Map, error) {
 			return nil, codes.Broken("ownership map gives a path to a repository it does not list")
 		}
 	}
-	m := &Map{repos: f.Repos, workers: f.Workers, paths: append([]pathRule(nil), f.Paths...)}
+	for target, elem := range f.Elements {
+		if !sanitize.IsTarget(target) {
+			return nil, codes.Broken("ownership map names a malformed element target")
+		}
+		if _, ok := f.Repos[elem.Repository]; !ok {
+			return nil, codes.Broken("ownership map gives an element to a repository it does not list")
+		}
+		if !sanitize.IsPath(elem.File) {
+			return nil, codes.Broken("ownership map has a malformed element file")
+		}
+		switch elem.Kind {
+		case "DATA", "CONFIG", "ISSUE":
+		default:
+			return nil, codes.Broken("ownership map has an unknown element edit kind")
+		}
+	}
+	m := &Map{
+		repos:    f.Repos,
+		workers:  f.Workers,
+		paths:    append([]pathRule(nil), f.Paths...),
+		elements: f.Elements,
+	}
 	sort.SliceStable(m.paths, func(i, j int) bool {
 		if len(m.paths[i].Prefix) != len(m.paths[j].Prefix) {
 			return len(m.paths[i].Prefix) > len(m.paths[j].Prefix)
@@ -129,6 +222,12 @@ func (m *Map) RepoForPath(target string) (string, bool) {
 		}
 	}
 	return "", false
+}
+
+// ElementForTarget returns the editable element entry for target, if any.
+func (m *Map) ElementForTarget(target string) (Element, bool) {
+	elem, ok := m.elements[target]
+	return elem, ok
 }
 
 // Known reports whether the map lists the repository.

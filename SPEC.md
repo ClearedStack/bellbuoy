@@ -33,7 +33,7 @@ Bellbuoy pulls leased notification and routing jobs from Muster over cluster-pri
 
 The calls are Muster's contract v1, and Muster's copy of that contract is the master. Every call is a `POST` with a JSON body that carries `"contract": "v1"` and only the fields the contract defines for that call. The ServiceAccount token is sent as a bearer token and is read from its file for every call, because the cluster replaces it while the pod runs. Bellbuoy follows no redirect and uses no proxy, so the token goes to the configured address and nowhere else. `POST /v1/lease` answers `200` with `lease`, `kind`, `id`, `state`, `lane`, `attempt`, `expires` and what the step is about, or `204` when there is nothing to do, after which Bellbuoy waits and asks again. Muster chooses the lane: it offers `urgent` first, then `normal`, then `backfill`. A refusal has the form `{error, cause, reason}`. Bellbuoy acts on the `error` code and on two causes, `lease_not_held` and `move_not_allowed`, and repeats none of it in its own errors or logs.
 
-Muster's saved examples of the contract are copied into `testdata/contract/`, and a test replays every one that is a worker call: Bellbuoy's client must send exactly the request in the example and read the answer the way the contract means it.
+Muster's saved examples of the contract are copied into `testdata/contract/`, and `internal/muster/contract_test.go` replays every saved `.json` example: Bellbuoy's client sends the exact request in each worker example, reads every response and refusal the way `CONTRACT.md` means it, and exposes no non-worker calls.
 
 Bellbuoy keeps a held lease alive with `heartbeat` every 20 seconds. It writes the result of a step to the spool before telling Muster, answers with `complete`, `fail` or `needs_subtool`, and removes the result from the spool only when Muster answers `200`.
 
@@ -50,21 +50,22 @@ Rather than transitioning `PA-XXXX` items through pipeline stages itself, Bellbu
 - **Edit-to-repo loop (`ownership_map.json`):** Routes owner-approved anonymous `✎ Edit` proposals (`DATA`, `CONFIG`, `ISSUE` from Countersign), committing `DATA` and `CONFIG` branches/PRs or `ISSUE` tickets to Plainforge so Keelworks can build/test and Shipkeeper can deploy.
   - A `DATA` or `CONFIG` edit carries the whole new text of one file. It is committed on the branch `edit/<edit reference>` with a request to merge it. Bellbuoy never writes to a default branch. The same edit delivered again changes nothing.
   - An `ISSUE` edit carries a summary and becomes one task. Delivered again, it is still one task.
-  - An edit with no approval reference is `E_PARSE`. Bellbuoy acts only on approved edits.
-  - `ownership_map.json` has three parts. `repos` lists every repository Bellbuoy may write to and whether it has a public mirror: `{"muster": {"mirror": true}}`. `workers` maps a worker's name to the repository that owns its failures: `{"muster": "muster"}`. `paths` maps the target of an edit to a repository: `[{"prefix": "platform/", "repo": "clearedstack.com"}]`. A prefix ending in `/` covers everything under it, any other prefix covers that one file, and the longest matching prefix wins. A worker or target with no entry is `E_NEEDS_SUBTOOL`. A map that is malformed in any way is refused whole.
+  - An edit with no approval reference, or a proposal leased outside the `approved` state, is `E_PARSE`. Bellbuoy acts only on approved edits and proposals.
+  - `ownership_map.json` has up to four parts. `elements` maps an editable Portal element identifier to `{"repository", "file", "kind"}` as in Muster's contract v1. `repos` lists every repository Bellbuoy may write to and whether it has a public mirror: `{"muster": {"mirror": true}}`. `workers` maps a worker's name to the repository that owns its failures: `{"muster": "muster"}`. `paths` maps the target of a path-based edit to a repository: `[{"prefix": "platform/", "repo": "clearedstack.com"}]`. When a map supplies only `elements`, `repos` and `workers` default to the ClearedStack naming registry. A worker or target with no entry is `E_NEEDS_SUBTOOL`. A map that is malformed in any way is refused whole.
 - **Live Portal SSE:** Streams sanitized status updates so an anonymous visitor watches their edit pill move live from `Proposed` → `Approved` → `Building` → `Live`.
 
 ### Job kinds
 
-A lease from Muster names the kind of step. Bellbuoy has a rule for one kind that Muster offers today:
+A lease from Muster names the kind of step. Bellbuoy has rules for both kinds that Muster offers to `bellbuoy` in contract v1:
 
 | Kind | What the lease carries | What Bellbuoy does |
 | --- | --- | --- |
 | `incident` | `incident`, with `id` (the item, `PA-` and four digits, or five to nine digits not starting with zero), `worker` (the worker that stopped), `code` (`E_PARSE` for a held item, `E_NEEDS_SUBTOOL` for a paused one) and `state` (the state the item was in when the worker stopped) | Opens or adds to the fingerprinted task in that worker's repository, then answers `complete` with the state it was given and no result, as the contract requires of an incident. |
+| `proposal` | `proposal`, with `target`, `repository`, `file`, `edit_kind` (`DATA`, `CONFIG` or `ISSUE`), `change` and `reason`, plus optional `results` from Countersign; leased in `state: "approved"` with `id` `EP-XXXX` | Proposes a branch `edit/<id>` for `DATA`/`CONFIG` or opens one task for `ISSUE` in `repository` (recovering `file` from `elements` in `ownership_map.json` when Muster has restarted over PostgreSQL 17), then answers `complete` with `state: "building"` and the recorded change or task as `result`. |
 
 Muster gives no failure message with an incident, so the failure pattern is built from what it does give: `held in` for `E_PARSE` or `paused in` for `E_NEEDS_SUBTOOL`, followed by the state with underscores read as spaces. Items that the same worker left the same way in the same state share one task.
 
-An incident that contradicts itself or is malformed is answered with `fail` and `E_PARSE`.
+An incident or proposal that contradicts itself, contradicts `ownership_map.json`, or is malformed is answered with `fail` and `E_PARSE`.
 
 Muster lets only an item's own step be paused. It refuses `needs_subtool` for an incident or a proposal. So when Bellbuoy has no rule for such a step (a kind it does not know, a field it does not know, a worker with no owner in the ownership map) it cannot pause it, and it does not pretend the step failed or succeeded either. It writes nothing, keeps nothing, logs the reason and lets the lease run out. Muster offers the step again one lease length later and Bellbuoy looks at it afresh, so the step is dealt with as soon as the rule or the setting exists.
 
@@ -79,7 +80,7 @@ The kinds below are not in Muster's contract. They were assumed before the contr
 | `drift` | `ref` (an opaque reference to the rule that changed) | Alerts the owner, in the `urgent` lane only. |
 | `mirror` | `repo`, `content` (a list of `source`, `task`) | Brings a public mirror up to date. |
 
-References (`id`, `edit`, `approval`, `ref`) are 1 to 64 letters, digits, dots, underscores and hyphens. A `target` is a plain relative path with no `.` or `..` part.
+References (`id`, `edit`, `approval`, `ref`) are 1 to 64 letters, digits, dots, underscores and hyphens. A `target` is either an element identifier (`catalog.sample-calculator.description`) for a `proposal` or a plain relative path with no `.` or `..` part for an `edit`.
 
 ## Sub-Tools & Failure Modes
 
@@ -87,10 +88,10 @@ Bellbuoy separates delivery targets into four deterministic sub-tools under `too
 
 | Sub-Tool | Responsibility | Target |
 | --- | --- | --- |
-| `internal-git` | Commits owner-approved Portal edits (`DATA`, `CONFIG`, `ISSUE`), `needs_subtool` tasks, and fingerprinted error issues. | Cluster-private Plainforge repositories. |
+| `internal-git` | Commits owner-approved Portal proposals and edits (`DATA`, `CONFIG`, `ISSUE`), `needs_subtool` tasks, and fingerprinted error issues. | Cluster-private Plainforge repositories. |
 | `github-mirror` | Coordinates outbound code mirroring on change so public contributors can inspect commits and issues. It asks Plainforge to bring the mirror up to date; Bellbuoy holds no credential for GitHub and pushes nothing there itself. It runs after `internal-git` writes to a repository that has a mirror, and for every `mirror` job. Only `source` and `task` content may be named. A job that names anything else is paused whole. | Public GitHub mirror (source code only; zero container images). |
 | `webhook-alert` | Dispatches concise owner alerts for genuinely new fingerprinted errors, `P0` crashes/dead-letters, or `urgent` regulatory drift. A repeat of a known failure alerts nobody. The alert is one JSON object posted to the webhook with no free text in it: `source`, `kind`, `lane`, `tier`, `new`, `worker`, `code`, `fingerprint`, `occurrences`, `task`, `ref`. Redirects are not followed. With no webhook configured, a job that needs an alert is `E_NEEDS_SUBTOOL`. | Configured external webhook endpoint. |
-| `portal-sse` | Pushes sanitized real-time Server-Sent Events through Muster to Conn. Muster's contract v1 has no call that takes an event, so in the cluster this sub-tool has nowhere to deliver yet and is not run; it works against the in-memory stand-in. Two streams have rules. `pill` carries an edit reference and one of `Proposed`, `Approved`, `Building`, `Live`; Bellbuoy sends `Approved` itself when it commits an edit, and passes on the others from `status` jobs. `operations` carries a worker, a code, a fingerprint and a count, sent each time a failure is counted. An event has no free text. The streams for the item-lifecycle and registry pages have no rule yet, because their states are not written down here; a `status` job for them is `E_NEEDS_SUBTOOL`. | Public Portal UI (`https://clearedstack.com/platform/operations/`, `https://clearedstack.com/platform/item-lifecycle/`, `https://clearedstack.com/platform/#registry`, and live `✎` pills). |
+| `portal-sse` | Pushes sanitized real-time Server-Sent Events through Muster to Conn. Muster's contract v1 emits proposal `building`/`live` events directly from Muster's `/v1/feed` when `complete` or `/v1/health` is called, and has no separate worker event call, so in the cluster this sub-tool has nowhere separate to deliver yet and is not run; it works against the in-memory stand-in. Two streams have rules. `pill` carries an edit reference and one of `Proposed`, `Approved`, `Building`, `Live`; Bellbuoy sends `Building` for a `proposal`, `Approved` for a legacy `edit`, and passes on the others from `status` jobs. `operations` carries a worker, a code, a fingerprint and a count, sent each time a failure is counted. An event has no free text. The streams for the item-lifecycle and registry pages have no rule yet, because their states are not written down here; a `status` job for them is `E_NEEDS_SUBTOOL`. | Public Portal UI (`https://clearedstack.com/platform/operations/`, `https://clearedstack.com/platform/item-lifecycle/`, `https://clearedstack.com/platform/#registry`, and live `✎` pills). |
 
 | Error Code | Trigger | Pipeline Behavior |
 | --- | --- | --- |
@@ -124,12 +125,12 @@ Made while building Bellbuoy, each with its reason. Nothing above was removed.
 | Change | Reason |
 | --- | --- |
 | Added `publish` to the Muster calls, then took it out again. | `portal-sse` pushes events "through Muster", and none of the five calls listed could carry one. Muster's contract v1 has since been written, with five calls and no `publish`, and Muster's contract is the master. |
-| Described the five calls as Muster's contract v1 defines them, and added the `incident` kind. | The contract now exists. An incident is how Muster tells Bellbuoy that an item is held or paused, which is the work this component is for. |
+| Described the five calls as Muster's contract v1 defines them, and added the `incident` and `proposal` kinds. | The contract defines `incident` and `proposal` as the two step kinds leased to `bellbuoy`. |
 | Marked the other job kinds as assumptions used only by replay and the stand-in. | They were written before Muster's contract and are not in it. |
 | Said that issue, ticket and task are the same thing. | This page used the first two; the naming registry and `component.json` use "task". The registry wins. |
 | Wrote down the fingerprint recipe and how a failure pattern is sanitized. | The page named the three inputs and nothing else. Two builds could not have agreed on a fingerprint. |
 | Said what happens to a `DATA` edit, and that edits are committed on a branch. | `DATA` was listed for `internal-git` and then left out of the sentence about what is committed. |
-| Described `ownership_map.json`. | The file was named with no contents. The `repos` part with its `mirror` flag is new: something has to say which repositories have a public mirror. |
+| Described `ownership_map.json`, including Muster's `elements` table. | Supports both Muster's `{"elements": {...}}` map and the cluster map in `deploy/bellbuoy.yaml`, and recovers `file` after a Muster restart over PostgreSQL 17. |
 | Added the table of job kinds. | When it was added the Muster v1 contract did not exist, and Bellbuoy could not be built or tested without some shape for a job. |
 | Said that `github-mirror` asks Plainforge to do the mirroring. | The page did not say who pushes. The failure table speaks of a "Plainforge mirror target", and keeping the GitHub credential out of Bellbuoy is the smaller surface. |
 | Said what an alert and an event contain, and which streams have rules. | Neither had a format. The states for the item-lifecycle and registry streams are defined on other pages, so those two are paused here instead of guessed. |
@@ -141,11 +142,8 @@ Made while building Bellbuoy, each with its reason. Nothing above was removed.
 Still open, and not decided here:
 
 - How Bellbuoy says "no rule" for a step that is not an item's own. Muster refuses `needs_subtool` for incidents and proposals, so such a step is offered again every lease length until a rule exists. A call or a state for this would stop the repeats.
-- The form of `ownership_map.json`. Muster's has the form `{"elements": {...}}`, keyed by edit target. Bellbuoy's, described above, also has to say which repository owns each worker, which Muster's does not.
-- Where a task goes. Plainforge has no interface for tasks yet, so in the cluster Bellbuoy keeps tasks in a ledger file in the spool and sends nothing to a repository. `github-mirror` is not run there for the same reason.
-- How live events reach Conn, now that Muster's contract has no call for them.
-- What Bellbuoy does with a proposal. Muster's contract has Bellbuoy complete an approved proposal to `building`; the rule here still expects the older `edit` shape.
-
+- Where a task or proposed branch goes in Plainforge. Plainforge currently serves single-repository Git smart HTTP and does not yet expose multi-repository task, branch-proposal or mirror endpoints, so in `serve` Bellbuoy records tasks and proposed changes durably in `tasks.ledger` in `/var/spool/cs`. `github-mirror` waits on that Plainforge interface.
+- How `operations` live events reach Conn. Proposal `building` and `live` events are emitted by Muster directly from `complete` and `/v1/health`, while Muster's contract v1 has no worker call for `operations` events.
 - The name of the Kubernetes priority class. This page says "Standard"; the registry has no identifier for it.
 - The names of settings. The build uses one, `BELLBUOY_WEBHOOK_URL`, which is not in the registry.
 - Whether an alert should be signed. Nothing here asks for it, so it is not.

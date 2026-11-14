@@ -227,6 +227,16 @@ func (m *Memory) end(lease string, ack Ack) error {
 			return codes.Broken("an incident step takes no result")
 		}
 	}
+	if job.Kind == work.KindProposal {
+		// As in Muster's contract: Bellbuoy moves an approved proposal to
+		// building, and a proposal step cannot be paused.
+		switch {
+		case ack.Verdict == VerdictNeedsSubtool:
+			return ErrMoveNotAllowed
+		case ack.Verdict == VerdictComplete && (job.State != "approved" || ack.State != "building"):
+			return ErrMoveNotAllowed
+		}
+	}
 	delete(m.leased, lease)
 	ack.Job = job.ID
 	m.acks = append(m.acks, ack)

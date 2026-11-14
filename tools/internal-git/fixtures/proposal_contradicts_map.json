@@ -1,0 +1,31 @@
+{
+  "about": "A proposal whose repository, file or class disagrees with the ownership map is refused as broken data.",
+  "job": {
+    "id": "EP-0005",
+    "lane": "urgent",
+    "kind": "proposal",
+    "lease": "EP-0005.2.1",
+    "state": "approved",
+    "attempt": 1,
+    "payload": {
+      "proposal": {
+        "target": "catalog.sample-calculator.description",
+        "repository": "bellbuoy",
+        "file": "src/data/sample-catalog.json",
+        "edit_kind": "DATA",
+        "change": "New description.",
+        "reason": "Wrong repository."
+      }
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_PARSE",
+      "reason": "proposal contradicts the ownership map"
+    },
+    "state": {},
+    "effects": {}
+  }
+}

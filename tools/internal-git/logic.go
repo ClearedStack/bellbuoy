@@ -61,12 +61,32 @@ type edit struct {
 	Summary  *string `json:"summary"`
 }
 
+// proposalLease is what Muster's lease of an approved proposal step carries
+// besides the fields every lease has.
+type proposalLease struct {
+	Proposal json.RawMessage `json:"proposal"`
+	Results  json.RawMessage `json:"results"`
+}
+
+// proposal is the edit proposal Muster hands to Bellbuoy once Countersign
+// has approved it.
+type proposal struct {
+	Target     string `json:"target"`
+	Repository string `json:"repository"`
+	File       string `json:"file"`
+	EditKind   string `json:"edit_kind"`
+	Change     string `json:"change"`
+	Reason     string `json:"reason"`
+}
+
 // Run does the work for one job. Everything is checked before anything is
 // written, so a job that is refused leaves the repository untouched.
 func (t *Tool) Run(ctx context.Context, job work.Job, st *work.State) error {
 	switch job.Kind {
 	case work.KindEdit:
 		return t.runEdit(ctx, job, st)
+	case work.KindProposal:
+		return t.runProposal(ctx, job, st)
 	case work.KindIncident:
 		return t.runIncident(ctx, job, st)
 	}
@@ -266,5 +286,129 @@ func (t *Tool) runEdit(ctx context.Context, job work.Job, st *work.State) error 
 		return err
 	}
 	st.Change = &work.ChangeResult{Repo: repo, Branch: change.Branch, Edit: e.Edit, Created: created}
+	return nil
+}
+
+// runProposal files an edit proposal Muster has leased in the approved state.
+// When Muster runs against PostgreSQL 17 and restarts between intake and
+// Bellbuoy's lease, the file path and prior worker results are no longer in
+// Muster's memory, so an empty file path is filled from the ownership map's
+// element table when the target is listed there.
+func (t *Tool) runProposal(ctx context.Context, job work.Job, st *work.State) error {
+	if !sanitize.IsProposal(job.ID) {
+		return codes.Broken("proposal reference is missing or malformed")
+	}
+	if job.State != "approved" {
+		return codes.Broken("proposal is not in the approved state")
+	}
+	var lease proposalLease
+	if err := work.Decode(job.Payload, &lease); err != nil {
+		return err
+	}
+	if len(lease.Results) > 0 {
+		var byWorker map[string]json.RawMessage
+		if json.Unmarshal(lease.Results, &byWorker) != nil || byWorker == nil {
+			return codes.Broken("proposal results are malformed")
+		}
+		for worker, raw := range byWorker {
+			var obj map[string]json.RawMessage
+			if !sanitize.IsWorker(worker) || json.Unmarshal(raw, &obj) != nil || obj == nil {
+				return codes.Broken("proposal results are malformed")
+			}
+		}
+	}
+	var p proposal
+	if err := work.Decode(lease.Proposal, &p); err != nil {
+		return err
+	}
+	if !sanitize.IsTarget(p.Target) {
+		return codes.Broken("edit target is missing or malformed")
+	}
+	if !sanitize.IsRepo(p.Repository) {
+		return codes.Broken("proposal repository is missing or malformed")
+	}
+	switch p.EditKind {
+	case ClassData, ClassConfig, ClassIssue:
+	default:
+		if sanitize.IsLetters(p.EditKind, 16) && strings.ToUpper(p.EditKind) == p.EditKind {
+			return codes.Unfamiliar("no rule covers this class of edit")
+		}
+		return codes.Broken("edit class is missing or malformed")
+	}
+	if elem, ok := t.Owners.ElementForTarget(p.Target); ok {
+		if p.File == "" {
+			p.File = elem.File
+		}
+		if elem.Repository != p.Repository || elem.Kind != p.EditKind || elem.File != p.File {
+			return codes.Broken("proposal contradicts the ownership map")
+		}
+	}
+	if p.File != "" && !sanitize.IsPath(p.File) {
+		return codes.Broken("proposal file path is malformed")
+	}
+	if (p.EditKind == ClassData || p.EditKind == ClassConfig) && p.File == "" {
+		return codes.Broken("proposal file path is missing")
+	}
+	limit := maxContent
+	if p.EditKind == ClassIssue {
+		limit = maxSummary
+	}
+	if strings.TrimSpace(p.Change) == "" || !sanitize.IsText(p.Change, limit) {
+		return codes.Broken("proposal change is empty, too large or is not plain text")
+	}
+	if !sanitize.IsText(p.Reason, maxSummary) {
+		return codes.Broken("proposal reason is too large or is not plain text")
+	}
+	if !t.Owners.Known(p.Repository) {
+		return codes.Unfamiliar("no repository is recorded as owning this edit target")
+	}
+
+	title := "Portal proposal " + job.ID + ": " + p.Target
+
+	if p.EditKind == ClassIssue {
+		lines := []string{strings.TrimSpace(p.Change), ""}
+		if reason := strings.TrimSpace(p.Reason); reason != "" {
+			lines = append(lines, "Reason: "+reason)
+		}
+		lines = append(lines, "Target: "+p.Target)
+		if p.File != "" {
+			lines = append(lines, "File: "+p.File)
+		}
+		lines = append(lines, "", "Opened by bellbuoy from an owner-approved Portal proposal.")
+		draft := plainforge.TaskDraft{
+			Key:   "proposal-" + job.ID,
+			Title: title,
+			Body:  strings.Join(lines, "\n"),
+		}
+		task, created, err := tasks.OpenOnce(ctx, t.Forge, p.Repository, draft)
+		if err != nil {
+			return err
+		}
+		st.Task = &work.TaskResult{Repo: p.Repository, ID: task.ID, Created: created, Occurrences: task.Occurrences, Edit: job.ID}
+		return nil
+	}
+
+	msg := []string{
+		title,
+		"",
+		"Class: " + p.EditKind,
+		"Target: " + p.Target,
+	}
+	if reason := strings.TrimSpace(p.Reason); reason != "" {
+		msg = append(msg, "Reason: "+reason)
+	}
+	change := plainforge.Change{
+		Repo:    p.Repository,
+		Branch:  "edit/" + job.ID,
+		Path:    p.File,
+		Content: p.Change,
+		Title:   title,
+		Message: strings.Join(msg, "\n"),
+	}
+	created, err := t.Forge.ProposeChange(ctx, change)
+	if err != nil {
+		return err
+	}
+	st.Change = &work.ChangeResult{Repo: p.Repository, Branch: change.Branch, Edit: job.ID, Created: created}
 	return nil
 }

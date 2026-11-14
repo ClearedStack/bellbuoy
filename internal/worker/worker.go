@@ -292,9 +292,9 @@ func (w *Worker) advance(ctx context.Context, rec *spool.Record) {
 	}
 }
 
-// answer tells Muster how the step ended: complete, with the item left in
-// the state it was leased in; or fail, for broken data; or needs_subtool, for
-// data no rule covers.
+// answer tells Muster how the step ended: complete, moving a proposal to
+// building and leaving any other step in the state it was leased in; or fail,
+// for broken data; or needs_subtool, for data no rule covers.
 //
 // A completed step carries what was filed as its result, except an incident:
 // Muster's contract says an incident step takes no result.
@@ -308,7 +308,11 @@ func (w *Worker) answer(ctx context.Context, rec *spool.Record) (string, error) 
 				return muster.VerdictComplete, codes.Broken("result could not be written out")
 			}
 		}
-		return muster.VerdictComplete, w.Queue.Complete(ctx, rec.Job.Lease, rec.Job.State, result)
+		state := rec.Job.State
+		if rec.Job.Kind == work.KindProposal {
+			state = "building"
+		}
+		return muster.VerdictComplete, w.Queue.Complete(ctx, rec.Job.Lease, state, result)
 	case rec.Fault.Code == string(codes.NeedsSubtool):
 		return muster.VerdictNeedsSubtool, w.Queue.NeedsSubtool(ctx, rec.Job.Lease)
 	default:

@@ -1,0 +1,45 @@
+{
+  "about": "After Muster restarts over PostgreSQL 17, core.edit_proposal has no file or reason in memory; internal-git recovers the file path from the ownership map.",
+  "job": {
+    "id": "EP-0002",
+    "lane": "urgent",
+    "kind": "proposal",
+    "lease": "EP-0002.2.1",
+    "state": "approved",
+    "attempt": 1,
+    "payload": {
+      "proposal": {
+        "target": "sextant.sample-portal.options",
+        "repository": "sextant",
+        "file": "",
+        "edit_kind": "CONFIG",
+        "change": "{\n  \"timeout\": 30\n}\n",
+        "reason": ""
+      }
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "state": {
+      "change": {
+        "repo": "sextant",
+        "branch": "edit/EP-0002",
+        "edit": "EP-0002",
+        "created": true
+      }
+    },
+    "effects": {
+      "changes": [
+        {
+          "repo": "sextant",
+          "branch": "edit/EP-0002",
+          "path": "tools/sample-portal/options.json",
+          "content": "{\n  \"timeout\": 30\n}\n",
+          "title": "Portal proposal EP-0002: sextant.sample-portal.options",
+          "message": "Portal proposal EP-0002: sextant.sample-portal.options\n\nClass: CONFIG\nTarget: sextant.sample-portal.options"
+        }
+      ]
+    }
+  }
+}

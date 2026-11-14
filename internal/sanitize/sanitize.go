@@ -113,7 +113,17 @@ func IsRef(s string) bool {
 // IsItem reports whether s is a pipeline item reference: PA- and four
 // digits, or PA- and five to nine digits of which the first is not zero.
 func IsItem(s string) bool {
-	if len(s) < 7 || len(s) > 12 || s[:3] != "PA-" {
+	return numberedRef(s, "PA-")
+}
+
+// IsProposal reports whether s is an edit proposal reference: EP- and four
+// digits, or EP- and five to nine digits of which the first is not zero.
+func IsProposal(s string) bool {
+	return numberedRef(s, "EP-")
+}
+
+func numberedRef(s, prefix string) bool {
+	if len(s) < 7 || len(s) > 12 || s[:3] != prefix {
 		return false
 	}
 	digits := s[3:]
@@ -123,6 +133,31 @@ func IsItem(s string) bool {
 		}
 	}
 	return len(digits) == 4 || digits[0] != '0'
+}
+
+// IsTarget reports whether s has the form the contract gives an editable
+// element target: at most 100 bytes, lower-case words of letters and digits
+// joined by single dots, underscores or hyphens, starting with a letter.
+func IsTarget(s string) bool {
+	if len(s) < 1 || len(s) > 100 || !lower(s[0]) {
+		return false
+	}
+	sep := false
+	for i := 1; i < len(s); i++ {
+		c := s[i]
+		switch {
+		case lower(c) || digit(c):
+			sep = false
+		case c == '.' || c == '_' || c == '-':
+			if sep {
+				return false
+			}
+			sep = true
+		default:
+			return false
+		}
+	}
+	return !sep
 }
 
 // IsLease reports whether s can be a lease token: 1 to 128 letters, digits,

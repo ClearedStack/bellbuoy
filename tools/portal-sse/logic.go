@@ -52,6 +52,15 @@ func plan(job work.Job, st work.State) (muster.Event, error) {
 			edit = st.Task.Edit
 		}
 		return muster.Event{Topic: muster.TopicPill, Edit: edit, State: StateApproved}, nil
+	case job.Kind == work.KindProposal:
+		// internal-git has filed the approved proposal and Muster moves it to building.
+		edit := ""
+		if st.Change != nil {
+			edit = st.Change.Edit
+		} else {
+			edit = st.Task.Edit
+		}
+		return muster.Event{Topic: muster.TopicPill, Edit: edit, State: StateBuilding}, nil
 	default:
 		task := st.Task
 		return muster.Event{

@@ -39,6 +39,7 @@ const (
 	KindDrift        = "drift"         // a public rule changed
 	KindMirror       = "mirror"        // a repository changed
 	KindIncident     = "incident"      // Muster holds or has paused an item
+	KindProposal     = "proposal"      // Muster approved an edit proposal
 )
 
 // IsFailure reports whether a job of this kind describes a failure that is

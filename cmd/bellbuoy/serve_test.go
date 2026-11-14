@@ -135,8 +135,8 @@ func TestServeFilesATaskForEveryHeldOrPausedItem(t *testing.T) {
 	fake.Offer(incident("PA-0004", "observed", "newcomer", "E_PARSE")) // no owner recorded
 	fake.Offer(map[string]any{"kind": "incident", "id": "PA-0005", "state": "observed", "lane": "normal",
 		"incident": map[string]any{"id": "PA-0005", "code": "E_PARSE", "state": "observed"}}) // no worker
-	fake.Offer(map[string]any{"kind": "proposal", "id": "EP-0001", "state": "approved", "lane": "urgent",
-		"proposal": map[string]any{"target": "made-up"}}) // no rule for proposals yet
+	fake.Offer(map[string]any{"kind": "audit_note", "id": "PA-0006", "state": "observed", "lane": "urgent",
+		"note": map[string]any{"target": "made-up"}}) // unfamiliar job kind
 	s.until("four steps to end and two pauses to be refused", func() bool {
 		return len(fake.Ended()) == 4 && fake.Count("/v1/needs_subtool") == 2
 	})
@@ -234,6 +234,99 @@ func TestServeHandlesMustersExampleOfAnIncident(t *testing.T) {
 	if len(tasks) != 1 || tasks[0].Repo != "sextant" || tasks[0].Title != "sextant: E_PARSE [03d43879f9fa]" ||
 		!strings.Contains(tasks[0].Body, "Failure pattern: held in recorded") {
 		t.Fatalf("ledger = %+v", tasks)
+	}
+}
+
+// The lease Muster's own contract example gives for an approved proposal,
+// both with Countersign's in-memory results and after a Muster restart over
+// PostgreSQL 17 (where file, reason and results are empty), ends as a
+// proposed change or task and completes the proposal to building.
+func TestServeHandlesMustersExampleOfAProposal(t *testing.T) {
+	raw, err := os.ReadFile("../../testdata/contract/lease-proposal-results.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var example struct {
+		Expect struct {
+			Body map[string]any `json:"body"`
+		} `json:"expect"`
+	}
+	if err := json.Unmarshal(raw, &example); err != nil {
+		t.Fatal(err)
+	}
+	step := example.Expect.Body
+	delete(step, "lease")
+	delete(step, "attempt")
+	delete(step, "expires")
+
+	// A second proposal shaped as Muster reads core.edit_proposal from
+	// PostgreSQL 17 after a restart: file, reason and results are empty.
+	restarted := map[string]any{
+		"kind":  "proposal",
+		"id":    "EP-0002",
+		"state": "approved",
+		"lane":  "urgent",
+		"proposal": map[string]any{
+			"target":     "sextant.sample-portal.options",
+			"repository": "sextant",
+			"file":       "",
+			"edit_kind":  "CONFIG",
+			"change":     "timeout = 30\n",
+			"reason":     "",
+		},
+	}
+
+	// A third proposal of class ISSUE opens one task in the owning repository.
+	issueStep := map[string]any{
+		"kind":  "proposal",
+		"id":    "EP-0003",
+		"state": "approved",
+		"lane":  "urgent",
+		"proposal": map[string]any{
+			"target":     "bellbuoy.sample-rule.report",
+			"repository": "bellbuoy",
+			"file":       "tools/internal-git/logic.go",
+			"edit_kind":  "ISSUE",
+			"change":     "Explain how an approved proposal becomes a branch.",
+			"reason":     "Readers look here first.",
+		},
+	}
+
+	fake := mustertest.New(token)
+	defer fake.Close()
+	dir := t.TempDir()
+	s := startServe(t, fake, dir)
+	fake.Offer(step)
+	fake.Offer(restarted)
+	fake.Offer(issueStep)
+	s.until("all three proposals to end", func() bool { return len(fake.Ended()) == 3 })
+	s.stop()
+
+	ended := fake.Ended()
+	if ended[0].ID != "EP-0001" || ended[0].Call != "complete" || ended[0].State != "building" ||
+		!strings.Contains(ended[0].Result, `"branch":"edit/EP-0001"`) {
+		t.Fatalf("ended[0] = %+v", ended[0])
+	}
+	if ended[1].ID != "EP-0002" || ended[1].Call != "complete" || ended[1].State != "building" ||
+		!strings.Contains(ended[1].Result, `"branch":"edit/EP-0002"`) {
+		t.Fatalf("ended[1] = %+v", ended[1])
+	}
+	if ended[2].ID != "EP-0003" || ended[2].Call != "complete" || ended[2].State != "building" ||
+		!strings.Contains(ended[2].Result, `"id":"bellbuoy#1"`) {
+		t.Fatalf("ended[2] = %+v", ended[2])
+	}
+	l, err := plainforge.OpenLedger(filepath.Join(dir, "spool", "tasks.ledger"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	changes := l.Changes()
+	if len(changes) != 2 || changes[0].Repo != "clearedstack.com" || changes[0].Path != "src/data/sample-catalog.json" ||
+		changes[1].Repo != "sextant" || changes[1].Path != "tools/sample-portal/options.json" {
+		t.Fatalf("changes = %+v", changes)
+	}
+	tasks := l.Tasks()
+	if len(tasks) != 1 || tasks[0].ID != "bellbuoy#1" || tasks[0].Key != "proposal-EP-0003" {
+		t.Fatalf("tasks = %+v", tasks)
 	}
 }
 

@@ -1,0 +1,31 @@
+{
+  "about": "A proposal naming a repository absent from the ownership map has no rule.",
+  "job": {
+    "id": "EP-0007",
+    "lane": "urgent",
+    "kind": "proposal",
+    "lease": "EP-0007.2.1",
+    "state": "approved",
+    "attempt": 1,
+    "payload": {
+      "proposal": {
+        "target": "newcomer.sample.field",
+        "repository": "newcomer",
+        "file": "data/sample.json",
+        "edit_kind": "DATA",
+        "change": "Sample value.",
+        "reason": "Unlisted repository."
+      }
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_NEEDS_SUBTOOL",
+      "reason": "no repository is recorded as owning this edit target"
+    },
+    "state": {},
+    "effects": {}
+  }
+}

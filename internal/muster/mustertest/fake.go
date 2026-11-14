@@ -301,6 +301,10 @@ func (f *Fake) serve(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
+		if kind == "proposal" && (state != "approved" || *req.State != "building") {
+			notAllowed()
+			return
+		}
 		end.Call = "complete"
 		end.State = *req.State
 		if req.Result != nil {

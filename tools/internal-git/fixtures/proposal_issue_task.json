@@ -1,0 +1,47 @@
+{
+  "about": "An approved ISSUE proposal opens one task in the owning repository and never touches a branch.",
+  "job": {
+    "id": "EP-0003",
+    "lane": "urgent",
+    "kind": "proposal",
+    "lease": "EP-0003.2.1",
+    "state": "approved",
+    "attempt": 1,
+    "payload": {
+      "proposal": {
+        "target": "bellbuoy.sample-rule.report",
+        "repository": "bellbuoy",
+        "file": "tools/internal-git/logic.go",
+        "edit_kind": "ISSUE",
+        "change": "Document how an approved proposal moves to building.",
+        "reason": "Operators read this file first."
+      }
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "state": {
+      "task": {
+        "repo": "bellbuoy",
+        "id": "bellbuoy#1",
+        "created": true,
+        "occurrences": 1,
+        "edit": "EP-0003"
+      }
+    },
+    "effects": {
+      "tasks": [
+        {
+          "id": "bellbuoy#1",
+          "repo": "bellbuoy",
+          "key": "proposal-EP-0003",
+          "title": "Portal proposal EP-0003: bellbuoy.sample-rule.report",
+          "body": "Document how an approved proposal moves to building.\n\nReason: Operators read this file first.\nTarget: bellbuoy.sample-rule.report\nFile: tools/internal-git/logic.go\n\nOpened by bellbuoy from an owner-approved Portal proposal.",
+          "occurrences": 1,
+          "open": true
+        }
+      ]
+    }
+  }
+}
