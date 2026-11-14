@@ -1,0 +1,58 @@
+{
+  "about": "A second item left the same way by the same worker in the same state adds one to the open task. It does not open another.",
+  "job": {
+    "id": "PA-0043",
+    "lane": "normal",
+    "kind": "incident",
+    "lease": "incident:PA-0043.1",
+    "state": "observed",
+    "attempt": 1,
+    "payload": {
+      "incident": {
+        "id": "PA-0043",
+        "worker": "keelworks",
+        "code": "E_PARSE",
+        "state": "observed"
+      }
+    }
+  },
+  "seed": [
+    {
+      "id": "keelworks#1",
+      "repo": "keelworks",
+      "key": "7d1b393eb1e1fdb2c6658be465595ed13e976106549f955b227b386aa39a43f8",
+      "title": "keelworks: E_PARSE [7d1b393eb1e1]",
+      "body": "seeded",
+      "occurrences": 1,
+      "open": true
+    }
+  ],
+  "state": {},
+  "want": {
+    "match": true,
+    "state": {
+      "task": {
+        "repo": "keelworks",
+        "id": "keelworks#1",
+        "created": false,
+        "occurrences": 2,
+        "worker": "keelworks",
+        "code": "E_PARSE",
+        "fingerprint": "7d1b393eb1e1fdb2c6658be465595ed13e976106549f955b227b386aa39a43f8"
+      }
+    },
+    "effects": {
+      "tasks": [
+        {
+          "id": "keelworks#1",
+          "repo": "keelworks",
+          "key": "7d1b393eb1e1fdb2c6658be465595ed13e976106549f955b227b386aa39a43f8",
+          "title": "keelworks: E_PARSE [7d1b393eb1e1]",
+          "body": "seeded",
+          "occurrences": 2,
+          "open": true
+        }
+      ]
+    }
+  }
+}

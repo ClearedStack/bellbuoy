@@ -38,13 +38,15 @@ const (
 	KindStatus       = "status"        // an edit moved on
 	KindDrift        = "drift"         // a public rule changed
 	KindMirror       = "mirror"        // a repository changed
+	KindIncident     = "incident"      // Muster holds or has paused an item
+	KindProposal     = "proposal"      // Muster approved an edit proposal
 )
 
 // IsFailure reports whether a job of this kind describes a failure that is
 // fingerprinted and turned into a task.
 func IsFailure(kind string) bool {
 	switch kind {
-	case KindError, KindCrash, KindDeadLetter, KindNeedsSubtool:
+	case KindError, KindCrash, KindDeadLetter, KindNeedsSubtool, KindIncident:
 		return true
 	}
 	return false
@@ -53,13 +55,27 @@ func IsFailure(kind string) bool {
 // MaxPayload is the largest job payload accepted, in bytes.
 const MaxPayload = 512 << 10
 
-// Job is one piece of routing work leased from Muster.
+// Job is one step leased from Muster.
+//
+// ID names the item or proposal the step belongs to. Muster holds at most
+// one step for each, so Kind and ID together name the step. Lease names one
+// handing-out of it and changes each time the step is handed out again.
 type Job struct {
-	ID      string          `json:"id"`
-	Lane    string          `json:"lane"`
-	Kind    string          `json:"kind"`
+	ID   string `json:"id"`
+	Lane string `json:"lane"`
+	Kind string `json:"kind"`
+	// Lease is the token every later call about this step carries.
+	Lease string `json:"lease,omitempty"`
+	// State is the state the item was in when the step was leased.
+	State string `json:"state,omitempty"`
+	// Attempt counts how many times the step has been handed out.
+	Attempt int `json:"attempt,omitempty"`
+	// Payload is everything else the lease carried, as one JSON object.
 	Payload json.RawMessage `json:"payload"`
 }
+
+// Key names the step a job is one handing-out of.
+func (j Job) Key() string { return j.Kind + "/" + j.ID }
 
 // Check reports whether the job's envelope is well formed. It says nothing
 // about whether a rule covers the job.
@@ -71,6 +87,12 @@ func (j Job) Check() error {
 		return codes.Broken("job lane is not urgent, normal or backfill")
 	case !sanitize.IsKind(j.Kind):
 		return codes.Broken("job kind is missing or malformed")
+	case j.Lease != "" && !sanitize.IsLease(j.Lease):
+		return codes.Broken("job lease is malformed")
+	case j.State != "" && !sanitize.IsKind(j.State):
+		return codes.Broken("job state is malformed")
+	case j.Attempt < 0:
+		return codes.Broken("job attempt count is malformed")
 	case len(j.Payload) > MaxPayload:
 		return codes.Broken("job payload is too large")
 	}

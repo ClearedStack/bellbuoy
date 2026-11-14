@@ -58,6 +58,31 @@ func TestMirrors(t *testing.T) {
 	}
 }
 
+func TestMusterElementsForm(t *testing.T) {
+	raw := `{"elements":{"catalog.sample-calculator.description":{"repository":"clearedstack.com","file":"src/data/sample-catalog.json","kind":"DATA"}}}`
+	m, err := Parse([]byte(raw))
+	if err != nil {
+		t.Fatal(err)
+	}
+	elem, ok := m.ElementForTarget("catalog.sample-calculator.description")
+	if !ok || elem.Repository != "clearedstack.com" || elem.File != "src/data/sample-catalog.json" || elem.Kind != "DATA" {
+		t.Fatalf("ElementForTarget = %+v %v", elem, ok)
+	}
+	if _, ok := m.ElementForTarget("catalog.absent"); ok {
+		t.Fatal("absent element should not be found")
+	}
+	// Pure elements form defaults worker and repo lookups to the registry.
+	if repo, ok := m.RepoForWorker("trawl"); !ok || repo != "trawl" {
+		t.Fatalf("RepoForWorker(trawl) = %q %v", repo, ok)
+	}
+	if _, ok := m.RepoForWorker("newcomer"); ok {
+		t.Fatal("unlisted worker must still have no owner")
+	}
+	if !m.Known("clearedstack.com") || m.Known("unlisted") {
+		t.Fatal("Known on registry defaults is wrong")
+	}
+}
+
 func TestParseRefusesBadMaps(t *testing.T) {
 	bad := []string{
 		``,
@@ -72,6 +97,11 @@ func TestParseRefusesBadMaps(t *testing.T) {
 		`{"repos":{"a":{}},"paths":[{"prefix":"/x/","repo":"a"}]}`,
 		`{"repos":{"a":{}},"paths":[{"prefix":"x/","repo":"missing"}]}`,
 		`{"repos":{"a":{}},"paths":[{"prefix":"x/","repo":"a"},{"prefix":"x/","repo":"a"}]}`,
+		`{"elements":{"Bad.Target":{"repository":"assay","file":"a.json","kind":"DATA"}}}`,
+		`{"elements":{"a.b":{"repository":"unlisted","file":"a.json","kind":"DATA"}}}`,
+		`{"elements":{"a.b":{"repository":"assay","file":"../a.json","kind":"DATA"}}}`,
+		`{"elements":{"a.b":{"repository":"assay","file":"a.json","kind":"LAYOUT"}}}`,
+		`{"elements":{"a.b":{"repository":"assay","file":"a.json","kind":"DATA","extra":1}}}`,
 	}
 	for _, s := range bad {
 		if _, err := Parse([]byte(s)); err == nil || codes.From(err).Code != codes.Parse {

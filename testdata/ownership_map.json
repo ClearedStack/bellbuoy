@@ -4,17 +4,36 @@
     "clearedstack.com": {"mirror": true},
     "keelworks": {"mirror": true},
     "muster": {"mirror": true},
+    "sextant": {"mirror": true},
     "shipkeeper": {"mirror": false}
   },
   "workers": {
     "bellbuoy": "bellbuoy",
     "keelworks": "keelworks",
     "muster": "muster",
+    "sextant": "sextant",
     "shipkeeper": "shipkeeper"
   },
   "paths": [
     {"prefix": "platform/", "repo": "clearedstack.com"},
     {"prefix": "platform/workers/bellbuoy/", "repo": "bellbuoy"},
     {"prefix": "deploy/values.json", "repo": "shipkeeper"}
-  ]
+  ],
+  "elements": {
+    "catalog.sample-calculator.description": {
+      "repository": "clearedstack.com",
+      "file": "src/data/sample-catalog.json",
+      "kind": "DATA"
+    },
+    "sextant.sample-portal.options": {
+      "repository": "sextant",
+      "file": "tools/sample-portal/options.json",
+      "kind": "CONFIG"
+    },
+    "bellbuoy.sample-rule.report": {
+      "repository": "bellbuoy",
+      "file": "tools/internal-git/logic.go",
+      "kind": "ISSUE"
+    }
+  }
 }

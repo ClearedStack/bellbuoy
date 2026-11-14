@@ -1,10 +1,15 @@
 // Package spool keeps unfinished work on disk, under /var/spool/cs in the
 // cluster, so that it survives a restart of Bellbuoy or of Muster.
 //
-// A job is written here in two cases: a call outside timed out and has to be
-// tried again, or the work is done and Muster could not be told. Each job has
-// one file, replaced whole each time by writing a new file and renaming it
-// over the old one, so a file is never seen half written.
+// A step is written here when a call outside timed out and has to be tried
+// again, and always before Muster is told how the step ended. The record is
+// removed only once Muster has acknowledged the answer. Each step has one
+// file, replaced whole each time by writing a new file and renaming it over
+// the old one, so a file is never seen half written.
+//
+// Records are named by the step (its kind and the item or proposal it
+// belongs to), not by the lease, because the same step can be handed out
+// again under a new lease.
 package spool
 
 import (
@@ -59,7 +64,8 @@ type Fault struct {
 type Record struct {
 	// Seq orders records by when they were first staged.
 	Seq uint64 `json:"seq"`
-	// Job is the job as leased.
+	// Job is the job as leased. Its lease token is replaced if Muster hands
+	// the step out again.
 	Job work.Job `json:"job"`
 	// Done names the sub-tools that have finished with this job.
 	Done []string `json:"done,omitempty"`
@@ -80,6 +86,11 @@ type entry struct {
 	seq      uint64
 	retryAt  int64
 	finished bool
+	lease    string
+}
+
+func entryOf(rec *Record) entry {
+	return entry{seq: rec.Seq, retryAt: rec.RetryAt, finished: rec.Finished, lease: rec.Job.Lease}
 }
 
 // Spool is a directory of records. It is safe for use by several goroutines.
@@ -118,11 +129,11 @@ func Open(dir string) (*Spool, error) {
 			continue
 		}
 		rec, err := read(filepath.Join(dir, name))
-		if err != nil || fileName(rec.Job.ID) != name {
+		if err != nil || fileName(rec.Job.Key()) != name {
 			s.skipped++
 			continue
 		}
-		s.index[rec.Job.ID] = entry{seq: rec.Seq, retryAt: rec.RetryAt, finished: rec.Finished}
+		s.index[rec.Job.Key()] = entryOf(rec)
 		if rec.Seq >= s.nextSeq {
 			s.nextSeq = rec.Seq + 1
 		}
@@ -130,8 +141,8 @@ func Open(dir string) (*Spool, error) {
 	return s, nil
 }
 
-func fileName(jobID string) string {
-	sum := sha256.Sum256([]byte(jobID))
+func fileName(key string) string {
+	sum := sha256.Sum256([]byte(key))
 	return hex.EncodeToString(sum[:16]) + suffix
 }
 
@@ -165,22 +176,22 @@ func (s *Spool) Skipped() int {
 	return s.skipped
 }
 
-// Len returns how many jobs are staged.
+// Len returns how many steps are staged.
 func (s *Spool) Len() int {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return len(s.index)
 }
 
-// Has reports whether a job is staged.
-func (s *Spool) Has(jobID string) bool {
+// Has reports whether a step is staged. key is the job's Key.
+func (s *Spool) Has(key string) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	_, ok := s.index[jobID]
+	_, ok := s.index[key]
 	return ok
 }
 
-// Put writes a record, replacing any earlier one for the same job.
+// Put writes a record, replacing any earlier one for the same step.
 func (s *Spool) Put(rec *Record) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -192,7 +203,7 @@ func (s *Spool) Put(rec *Record) error {
 	if err != nil {
 		return codes.Broken("spool record cannot be written")
 	}
-	name := fileName(rec.Job.ID)
+	name := fileName(rec.Job.Key())
 	tmp := filepath.Join(s.dir, tmpPrefix+name)
 	if err := writeSynced(tmp, data); err != nil {
 		_ = os.Remove(tmp)
@@ -203,7 +214,7 @@ func (s *Spool) Put(rec *Record) error {
 		return codes.Broken("spool record cannot be written")
 	}
 	syncDir(s.dir)
-	s.index[rec.Job.ID] = entry{seq: rec.Seq, retryAt: rec.RetryAt, finished: rec.Finished}
+	s.index[rec.Job.Key()] = entryOf(rec)
 	return nil
 }
 
@@ -231,54 +242,61 @@ func syncDir(dir string) {
 }
 
 // Get reads a staged record back.
-func (s *Spool) Get(jobID string) (*Record, error) {
+func (s *Spool) Get(key string) (*Record, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if _, ok := s.index[jobID]; !ok {
+	if _, ok := s.index[key]; !ok {
 		return nil, codes.Broken("spool has no record for this job")
 	}
-	rec, err := read(filepath.Join(s.dir, fileName(jobID)))
-	if err != nil || rec.Job.ID != jobID {
+	rec, err := read(filepath.Join(s.dir, fileName(key)))
+	if err != nil || rec.Job.Key() != key {
 		return nil, codes.Broken("spool record cannot be read back")
 	}
 	return rec, nil
 }
 
-// Delete removes a job's record. Deleting one that is not there is fine.
-func (s *Spool) Delete(jobID string) error {
+// Delete removes a step's record. Deleting one that is not there is fine.
+func (s *Spool) Delete(key string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if _, ok := s.index[jobID]; !ok {
+	if _, ok := s.index[key]; !ok {
 		return nil
 	}
-	if err := os.Remove(filepath.Join(s.dir, fileName(jobID))); err != nil && !os.IsNotExist(err) {
+	if err := os.Remove(filepath.Join(s.dir, fileName(key))); err != nil && !os.IsNotExist(err) {
 		return codes.Broken("spool record cannot be removed")
 	}
 	syncDir(s.dir)
-	delete(s.index, jobID)
+	delete(s.index, key)
 	return nil
 }
 
-// Due returns the jobs whose retry time has come, oldest first.
+// Due returns the keys of the steps whose retry time has come, oldest first.
 func (s *Spool) Due(now time.Time) []string {
 	return s.list(func(e entry) bool { return e.retryAt <= now.Unix() })
 }
 
-// Unfinished returns the staged jobs that still have sub-tools to run,
-// oldest first. Their leases have to be kept alive.
-func (s *Spool) Unfinished() []string {
-	return s.list(func(e entry) bool { return !e.finished })
+// Leases returns the lease tokens of the staged steps that still have
+// sub-tools to run, oldest first. Those leases have to be kept alive.
+func (s *Spool) Leases() []string {
+	keys := s.list(func(e entry) bool { return !e.finished && e.lease != "" })
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	leases := make([]string, 0, len(keys))
+	for _, key := range keys {
+		leases = append(leases, s.index[key].lease)
+	}
+	return leases
 }
 
 func (s *Spool) list(keep func(entry) bool) []string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	ids := make([]string, 0, len(s.index))
-	for id, e := range s.index {
+	keys := make([]string, 0, len(s.index))
+	for key, e := range s.index {
 		if keep(e) {
-			ids = append(ids, id)
+			keys = append(keys, key)
 		}
 	}
-	sort.Slice(ids, func(i, j int) bool { return s.index[ids[i]].seq < s.index[ids[j]].seq })
-	return ids
+	sort.Slice(keys, func(i, j int) bool { return s.index[keys[i]].seq < s.index[keys[j]].seq })
+	return keys
 }

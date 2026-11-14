@@ -1,0 +1,31 @@
+{
+  "about": "A proposal not in the approved state is broken data and leaves the repository untouched.",
+  "job": {
+    "id": "EP-0004",
+    "lane": "urgent",
+    "kind": "proposal",
+    "lease": "EP-0004.1.1",
+    "state": "proposed",
+    "attempt": 1,
+    "payload": {
+      "proposal": {
+        "target": "catalog.sample-calculator.description",
+        "repository": "clearedstack.com",
+        "file": "src/data/sample-catalog.json",
+        "edit_kind": "DATA",
+        "change": "New description.",
+        "reason": "Typo."
+      }
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_PARSE",
+      "reason": "proposal is not in the approved state"
+    },
+    "state": {},
+    "effects": {}
+  }
+}

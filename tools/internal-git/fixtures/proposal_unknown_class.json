@@ -1,0 +1,31 @@
+{
+  "about": "A proposal with a well-formed edit class outside DATA, CONFIG and ISSUE has no rule.",
+  "job": {
+    "id": "EP-0006",
+    "lane": "urgent",
+    "kind": "proposal",
+    "lease": "EP-0006.2.1",
+    "state": "approved",
+    "attempt": 1,
+    "payload": {
+      "proposal": {
+        "target": "custom.sample.widget",
+        "repository": "clearedstack.com",
+        "file": "src/data/widget.json",
+        "edit_kind": "PATCH",
+        "change": "New widget.",
+        "reason": "Future class."
+      }
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_NEEDS_SUBTOOL",
+      "reason": "no rule covers this class of edit"
+    },
+    "state": {},
+    "effects": {}
+  }
+}

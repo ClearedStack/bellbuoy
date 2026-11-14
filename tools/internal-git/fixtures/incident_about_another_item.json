@@ -1,0 +1,29 @@
+{
+  "about": "An incident that names a different item from the step it came with contradicts itself and is refused.",
+  "job": {
+    "id": "PA-0042",
+    "lane": "normal",
+    "kind": "incident",
+    "lease": "incident:PA-0042.1",
+    "state": "observed",
+    "attempt": 1,
+    "payload": {
+      "incident": {
+        "id": "PA-0099",
+        "worker": "keelworks",
+        "code": "E_PARSE",
+        "state": "observed"
+      }
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_PARSE",
+      "reason": "item reference is malformed or does not match the step"
+    },
+    "state": {},
+    "effects": {}
+  }
+}

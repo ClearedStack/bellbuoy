@@ -41,6 +41,31 @@ func (m *Memory) Seed(tasks []Task) {
 	}
 }
 
+// snapshot is everything a Memory holds that outlives a call.
+type snapshot struct {
+	Tasks   []Task   `json:"tasks"`
+	Changes []Change `json:"changes"`
+}
+
+func (m *Memory) snapshot() snapshot {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return snapshot{Tasks: append([]Task{}, m.tasks...), Changes: append([]Change{}, m.changes...)}
+}
+
+// restore replaces what the Memory holds. Task numbers carry on from the
+// number of tasks each repository has.
+func (m *Memory) restore(s snapshot) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.tasks = append([]Task(nil), s.Tasks...)
+	m.changes = append([]Change(nil), s.Changes...)
+	m.next = map[string]int{}
+	for _, t := range m.tasks {
+		m.next[t.Repo]++
+	}
+}
+
 // CloseTask marks a task as closed and reports whether it was found.
 func (m *Memory) CloseTask(repo, id string) bool {
 	m.mu.Lock()

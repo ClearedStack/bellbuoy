@@ -1,0 +1,29 @@
+{
+  "about": "An incident with a code that is not one of the three public codes has no rule.",
+  "job": {
+    "id": "PA-0042",
+    "lane": "normal",
+    "kind": "incident",
+    "lease": "incident:PA-0042.1",
+    "state": "observed",
+    "attempt": 1,
+    "payload": {
+      "incident": {
+        "id": "PA-0042",
+        "worker": "keelworks",
+        "code": "E_DISK_FULL",
+        "state": "observed"
+      }
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_NEEDS_SUBTOOL",
+      "reason": "error code is not one of the three public codes"
+    },
+    "state": {},
+    "effects": {}
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "about": "Muster has paused an item for want of a rule. The incident gives the state the item was paused from, and the task says paused, with the code E_NEEDS_SUBTOOL.",
+  "job": {
+    "id": "PA-0107",
+    "lane": "normal",
+    "kind": "incident",
+    "lease": "incident:PA-0107.1",
+    "state": "recorded",
+    "attempt": 1,
+    "payload": {
+      "incident": {
+        "id": "PA-0107",
+        "worker": "keelworks",
+        "code": "E_NEEDS_SUBTOOL",
+        "state": "recorded"
+      }
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "state": {
+      "task": {
+        "repo": "keelworks",
+        "id": "keelworks#1",
+        "created": true,
+        "occurrences": 1,
+        "worker": "keelworks",
+        "code": "E_NEEDS_SUBTOOL",
+        "fingerprint": "bfd24bc63cd05b5607303cce6798a4bf3ac6dbb48b36bc1541d7fa5605325f63"
+      }
+    },
+    "effects": {
+      "tasks": [
+        {
+          "id": "keelworks#1",
+          "repo": "keelworks",
+          "key": "bfd24bc63cd05b5607303cce6798a4bf3ac6dbb48b36bc1541d7fa5605325f63",
+          "title": "keelworks: E_NEEDS_SUBTOOL [bfd24bc63cd0]",
+          "body": "Worker: keelworks\nError code: E_NEEDS_SUBTOOL\nFingerprint: bfd24bc63cd05b5607303cce6798a4bf3ac6dbb48b36bc1541d7fa5605325f63\nFailure pattern: paused in recorded\nFirst seen on item: PA-0107\n\nOpened by bellbuoy. Repeats of this failure are counted on this task.",
+          "occurrences": 1,
+          "open": true
+        }
+      ]
+    }
+  }
+}

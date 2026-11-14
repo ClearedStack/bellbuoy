@@ -16,11 +16,12 @@ import (
 
 // Deps is everything the sub-tools reach outside through.
 type Deps struct {
-	Queue  muster.Queue
 	Forge  plainforge.Forge
 	Owners *ownership.Map
 	// Sender is nil when no webhook is configured.
 	Sender webhookalert.Sender
+	// Stream is nil when there is nowhere to publish live events.
+	Stream muster.Publisher
 }
 
 // All returns the four sub-tools in registry order.
@@ -29,6 +30,21 @@ func All(d Deps) []work.Tool {
 		&internalgit.Tool{Forge: d.Forge, Owners: d.Owners},
 		&githubmirror.Tool{Forge: d.Forge, Owners: d.Owners},
 		&webhookalert.Tool{Sender: d.Sender},
-		&portalsse.Tool{Queue: d.Queue},
+		&portalsse.Tool{Stream: d.Stream},
 	}
+}
+
+// Only returns the sub-tools with the given names, in registry order.
+func Only(all []work.Tool, names ...string) []work.Tool {
+	keep := map[string]bool{}
+	for _, name := range names {
+		keep[name] = true
+	}
+	var out []work.Tool
+	for _, tool := range all {
+		if keep[tool.Name()] {
+			out = append(out, tool)
+		}
+	}
+	return out
 }

@@ -1,0 +1,28 @@
+{
+  "about": "An incident that does not name the worker is broken data.",
+  "job": {
+    "id": "PA-0042",
+    "lane": "normal",
+    "kind": "incident",
+    "lease": "incident:PA-0042.1",
+    "state": "observed",
+    "attempt": 1,
+    "payload": {
+      "incident": {
+        "id": "PA-0042",
+        "code": "E_PARSE",
+        "state": "observed"
+      }
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_PARSE",
+      "reason": "worker name is missing or malformed"
+    },
+    "state": {},
+    "effects": {}
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "about": "An incident from a worker the ownership map does not list has no rule. No repository is guessed.",
+  "job": {
+    "id": "PA-0042",
+    "lane": "normal",
+    "kind": "incident",
+    "lease": "incident:PA-0042.1",
+    "state": "observed",
+    "attempt": 1,
+    "payload": {
+      "incident": {
+        "id": "PA-0042",
+        "worker": "newcomer",
+        "code": "E_PARSE",
+        "state": "observed"
+      }
+    }
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_NEEDS_SUBTOOL",
+      "reason": "no repository is recorded as owning this worker"
+    },
+    "state": {},
+    "effects": {}
+  }
+}

@@ -15,3 +15,5 @@
 {"id":"job-0015","lane":"normal","kind":"drift","payload":{"ref":"rule-0008"}}
 {"id":"job-0016","lane":"backfill","kind":"mirror","payload":{"repo":"keelworks","content":["source","image"]}}
 {"id":"job-0017","lane":"urgent","kind":"crash","payload":{"worker":"shipkeeper","code":"E_TIMEOUT","pattern":"process stopped","tier":"P0"}}
+{"id":"PA-0042","lane":"normal","kind":"incident","state":"observed","payload":{"incident":{"id":"PA-0042","worker":"keelworks","code":"E_PARSE","state":"observed"}}}
+{"id":"PA-0043","lane":"normal","kind":"incident","state":"observed","payload":{"incident":{"id":"PA-0043","worker":"keelworks","code":"E_PARSE","state":"observed"}}}

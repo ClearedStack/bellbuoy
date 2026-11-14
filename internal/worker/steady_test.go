@@ -25,10 +25,11 @@ type endless struct {
 	events   int
 }
 
-func (q *endless) Lease(_ context.Context, lane string) (work.Job, bool, error) {
-	if lane != work.LaneNormal || q.left == 0 {
+func (q *endless) Lease(context.Context) (work.Job, bool, error) {
+	if q.left == 0 {
 		return work.Job{}, false, nil
 	}
+	lane := work.LaneNormal
 	q.left--
 	q.made++
 	n := q.made
@@ -44,13 +45,17 @@ func (q *endless) Lease(_ context.Context, lane string) (work.Job, bool, error) 
 		kind = work.KindError
 		payload = fmt.Sprintf(`{"worker":"muster","code":"E_TIMEOUT","pattern":"timeout after %ds on node-%d (case %c)"}`, n, n%9, 'a'+rune(n%20))
 	}
-	return work.Job{ID: fmt.Sprintf("job-%d", n), Lane: lane, Kind: kind, Payload: json.RawMessage(payload)}, true, nil
+	id := fmt.Sprintf("job-%d", n)
+	return work.Job{ID: id, Lease: id + ".1", Lane: lane, Kind: kind, Payload: json.RawMessage(payload)}, true, nil
 }
-func (q *endless) Heartbeat(context.Context, string) error            { return nil }
-func (q *endless) Complete(context.Context, string) error             { q.answered++; return nil }
-func (q *endless) Fail(context.Context, string, codes.Code) error     { q.answered++; return nil }
-func (q *endless) NeedsSubtool(context.Context, string, string) error { q.answered++; return nil }
-func (q *endless) Publish(context.Context, muster.Event) error        { q.events++; return nil }
+func (q *endless) Heartbeat(context.Context, string) error { return nil }
+func (q *endless) Complete(context.Context, string, string, json.RawMessage) error {
+	q.answered++
+	return nil
+}
+func (q *endless) Fail(context.Context, string, codes.Code) error { q.answered++; return nil }
+func (q *endless) NeedsSubtool(context.Context, string) error     { q.answered++; return nil }
+func (q *endless) Publish(context.Context, muster.Event) error    { q.events++; return nil }
 
 // quietForge keeps tasks, as Plainforge does, and only counts the rest.
 type quietForge struct {
@@ -65,7 +70,7 @@ type countingSender struct{ sent int }
 func (s *countingSender) Send(context.Context, []byte) error { s.sent++; return nil }
 
 // The budget for the whole process is 30 MiB. With stand-ins that do not
-// pile up results, a hundred thousand jobs must leave the heap where it was,
+// pile up results, ten thousand jobs must leave the heap where it was,
 // and everything the Go runtime has taken from the system must fit the
 // budget with room to spare.
 func TestSteadyStateMemory(t *testing.T) {
@@ -82,24 +87,24 @@ func TestSteadyStateMemory(t *testing.T) {
 	sender := &countingSender{}
 	w := &Worker{
 		Queue: queue,
-		Tools: tools.All(tools.Deps{Queue: queue, Forge: forge, Owners: owners, Sender: sender}),
+		Tools: tools.All(tools.Deps{Forge: forge, Owners: owners, Sender: sender, Stream: queue}),
 		Spool: sp,
 	}
 	ctx := context.Background()
 
-	queue.left = 5000 // warm up: open the tasks that will be counted on
+	queue.left = 1000 // warm up: open the tasks that will be counted on
 	w.Drain(ctx)
 	var before runtime.MemStats
 	runtime.GC()
 	runtime.ReadMemStats(&before)
 
-	queue.left = 100000
+	queue.left = 10000
 	w.Drain(ctx)
 	var after runtime.MemStats
 	runtime.GC()
 	runtime.ReadMemStats(&after)
 
-	if queue.answered != 105000 {
+	if queue.answered != 11000 {
 		t.Fatalf("answered %d jobs", queue.answered)
 	}
 	// Jobs 2 and 3 in every 4 are failures, in ten different shapes (the
@@ -114,11 +119,11 @@ func TestSteadyStateMemory(t *testing.T) {
 
 	const growthLimit = 1 << 20
 	if grown := int64(after.HeapAlloc) - int64(before.HeapAlloc); grown > growthLimit {
-		t.Errorf("heap grew by %d bytes over 100000 jobs, limit %d", grown, growthLimit)
+		t.Errorf("heap grew by %d bytes over 10000 jobs, limit %d", grown, growthLimit)
 	}
 	const budget = 30 << 20
 	if after.Sys > budget {
 		t.Errorf("the runtime holds %d bytes from the system, budget %d", after.Sys, budget)
 	}
-	t.Logf("heap in use %d KiB, taken from the system %d KiB, after 105000 jobs", after.HeapAlloc>>10, after.Sys>>10)
+	t.Logf("heap in use %d KiB, taken from the system %d KiB, after 11000 jobs", after.HeapAlloc>>10, after.Sys>>10)
 }

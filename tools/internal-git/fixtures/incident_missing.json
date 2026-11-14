@@ -1,0 +1,22 @@
+{
+  "about": "A lease of kind incident that carries no incident is broken data.",
+  "job": {
+    "id": "PA-0042",
+    "lane": "normal",
+    "kind": "incident",
+    "lease": "incident:PA-0042.1",
+    "state": "observed",
+    "attempt": 1,
+    "payload": {}
+  },
+  "state": {},
+  "want": {
+    "match": true,
+    "error": {
+      "code": "E_PARSE",
+      "reason": "job payload is missing"
+    },
+    "state": {},
+    "effects": {}
+  }
+}
