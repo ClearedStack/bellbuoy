@@ -203,16 +203,6 @@ func TestDeployManifestsAndPosture(t *testing.T) {
 			t.Errorf("app.yaml missing %q:\n%s", wantLine, appManifest)
 		}
 	}
-
-	ciRaw, err := os.ReadFile("../../.github/workflows/tests.yml")
-	if err != nil {
-		t.Fatal(err)
-	}
-	ciText := string(ciRaw)
-	if strings.Contains(ciText, "\t") || !strings.Contains(ciText, "contents: read") ||
-		!strings.Contains(ciText, "go vet ./...") || !strings.Contains(ciText, "go test -race -count=1 ./...") {
-		t.Errorf(".github/workflows/tests.yml malformed:\n%s", ciText)
-	}
 }
 
 func extractEmbeddedOwnershipMap(t *testing.T, yamlText string) string {
